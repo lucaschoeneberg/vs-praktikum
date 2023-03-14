@@ -1,0 +1,60 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Aufgabe_3",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Aufgabe_3::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Aufgabe_3-Debug-e83dc38c2f96ffcc7cf6.json",
+					"name" : "Aufgabe_3",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/lucaschoneberg/Desktop/Current Projects/lucaschoeneberg/vs-praktikum/1/Aufgabe 3/cmake-build-debug",
+		"source" : "/Users/lucaschoneberg/Desktop/Current Projects/lucaschoeneberg/vs-praktikum/1/Aufgabe 3"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 4
+	}
+}
