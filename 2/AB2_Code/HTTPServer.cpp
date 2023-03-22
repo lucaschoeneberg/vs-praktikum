@@ -1,7 +1,6 @@
 //
 // Created by Luca Schöneberg on 21.03.23.
 //
-
 #include "HTTPServer.h"
 
 HTTPServer::HTTPServer(const std::string &docroot, int port, int max_threads) : docroot_(docroot), port_(port),
@@ -10,6 +9,10 @@ HTTPServer::HTTPServer(const std::string &docroot, int port, int max_threads) : 
 
 HTTPServer::~HTTPServer() {
     stop();
+}
+
+void HTTPServer::stop() {
+
 }
 
 void HTTPServer::start() {
@@ -24,7 +27,7 @@ void HTTPServer::start() {
 
     // Bind socket to address
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_addr.s_addr = INADDR_ANY; // ToDo: Check if this is correct
     serv_addr.sin_port = htons(port_);
     if (bind(server_socket_, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         std::cerr << "ERROR: Failed to bind socket to address." << std::endl;
@@ -44,6 +47,7 @@ void HTTPServer::start() {
     running_ = true;
 
     // Start worker threads
+    // ToDo: Documentation why we don´t use fork()
     for (int i = 0; i < max_threads_; ++i) {
         std::thread t(&HTTPServer::worker_thread, this);
         t.detach();
@@ -106,7 +110,7 @@ void HTTPServer::handle_request(int client_socket, const std::string &request) {
     while (std::getline(iss, line) && !line.empty()) {}
 
     // Check method
-    if (method != "GET") {
+    if (method != "GET" && method != "POST") {
         send_response(client_socket, 501, "Not Implemented", "text/plain", "Method not implemented.");
         return;
     }
@@ -121,6 +125,42 @@ void HTTPServer::handle_request(int client_socket, const std::string &request) {
 
     std::string full_path = docroot_ + path;
 
+    // Handle POST request
+    if (method == "POST") {
+        // Read request body
+        std::stringstream ss;
+        ss << iss.rdbuf();
+        std::string body = ss.str();
+
+        // Parse POST parameters
+        std::string param1 = "0", param2 = "0";
+        std::istringstream body_iss(line);
+        std::string token;
+        while (std::getline(body_iss, token, '&')) {
+            size_t pos = token.find('=');
+            if (pos != std::string::npos) {
+                std::string key = token.substr(0, pos);
+                std::string value = token.substr(pos + 1);
+                if (key == "zahl1") {
+                    param1 = value;
+                } else if (key == "zahl2") {
+                    param2 = value;
+                }
+            }
+        }
+
+        // Compute multiplication result
+        int64_t result = std::stoi(param1) * std::stoi(param2);
+
+        // Send response
+        std::ostringstream oss;
+        oss << "<html><head><title>Ergebnis</title></head><body><center><h1>Ergebnis: " << result
+            << "</h1></center></body></html>";
+        std::string content = oss.str();
+        send_response(client_socket, 200, "OK", "text/html", content);
+        return;
+    }
+
     // Check if file or directory exists
     struct stat sb;
     if (stat(full_path.c_str(), &sb) < 0) {
@@ -128,6 +168,7 @@ void HTTPServer::handle_request(int client_socket, const std::string &request) {
         return;
     }
 
+    // ToDO: Verstehen
     if (S_ISREG(sb.st_mode)) {
         // File
         std::string content, content_type;
@@ -207,7 +248,8 @@ void HTTPServer::read_file(const std::string &path, std::string &content, std::s
 }
 
 void HTTPServer::read_dir(const std::string &path, std::string &content) {
-    content = "<html><head><title>" + path + "</title></head><body><h1>" + path + "</h1><ul>";
+    std::string html_path = path.substr(docroot_.size());
+    content = "<html><head><title>" + html_path + "</title></head><body><h1>" + html_path + "</h1><ul>";
 
     DIR *dir = opendir(path.c_str());
     if (!dir) {
@@ -228,7 +270,7 @@ void HTTPServer::read_dir(const std::string &path, std::string &content) {
             continue;
         }
 
-        content += "<li><a href=\"" + name + "\">" + name + "</a>";
+        content += "<li><a href=\"" + html_path + '/' + name + "\">" + name + "</a>";
         if (S_ISDIR(sb.st_mode)) {
             content += "/";
         }

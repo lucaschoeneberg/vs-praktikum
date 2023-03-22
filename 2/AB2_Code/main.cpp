@@ -1,4 +1,5 @@
 #include <iostream>
+#include "HTTPServer.h"
 
 /*
 1. Ihr Programm soll als mehrstufiger Server ausgelegt sein.
@@ -17,6 +18,7 @@ b. Wird in der URI ein Verzeichnis (Unterverzeichnis im Arbeitsverzeichnis des S
 */
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    HTTPServer server("./html", 8080, 10);
+    server.start();
     return 0;
 }

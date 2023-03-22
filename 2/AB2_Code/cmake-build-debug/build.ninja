@@ -48,13 +48,13 @@ build cmake_object_order_depends_target_AB2_Code: phony || CMakeFiles/AB2_Code.d
 
 build CMakeFiles/AB2_Code.dir/main.cpp.o: CXX_COMPILER__AB2_Code_Debug /Users/lucaschoneberg/Desktop/Current$ Projects/lucaschoeneberg/vs-praktikum/2/AB2_Code/main.cpp || cmake_object_order_depends_target_AB2_Code
   DEP_FILE = CMakeFiles/AB2_Code.dir/main.cpp.o.d
-  FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu++17
+  FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu++2b
   OBJECT_DIR = CMakeFiles/AB2_Code.dir
   OBJECT_FILE_DIR = CMakeFiles/AB2_Code.dir
 
 build CMakeFiles/AB2_Code.dir/HTTPServer.cpp.o: CXX_COMPILER__AB2_Code_Debug /Users/lucaschoneberg/Desktop/Current$ Projects/lucaschoeneberg/vs-praktikum/2/AB2_Code/HTTPServer.cpp || cmake_object_order_depends_target_AB2_Code
   DEP_FILE = CMakeFiles/AB2_Code.dir/HTTPServer.cpp.o.d
-  FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu++17
+  FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu++2b
   OBJECT_DIR = CMakeFiles/AB2_Code.dir
   OBJECT_FILE_DIR = CMakeFiles/AB2_Code.dir
 
