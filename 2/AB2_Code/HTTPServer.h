@@ -5,6 +5,19 @@
 #ifndef AB2_CODE_HTTPSERVER_H
 #define AB2_CODE_HTTPSERVER_H
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <thread>
+#include <chrono>
+#include <cstring>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #include <string>
 
@@ -48,11 +61,14 @@ private:
 
     std::string get_file_extension(const std::string &path);
 
+    void worker_thread();
+
     std::string docroot_;
     int port_;
     int max_threads_;
     int server_socket_;
     bool running_;
+
 };
 
 
