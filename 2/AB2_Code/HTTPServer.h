@@ -37,35 +37,50 @@ b. Wird in der URI ein Verzeichnis (Unterverzeichnis im Arbeitsverzeichnis des S
 8. Testen Sie Ihren Server mit mehr als einem Browser und notieren Sie die Unterschiede bei der Verarbeitung von Anfragen.
 */
 
+// HTTPServer class definition
 class HTTPServer {
 public:
+    // Constructor that takes the server's document root directory, port number, and maximum number of threads
     HTTPServer(const std::string &docroot, int port = 8080, int max_threads = 10);
 
+    // Destructor to stop the server
     ~HTTPServer();
 
+    // Method to start the server
     void start();
 
+    // Method to stop the server
     void stop();
 
 private:
+    // Private method that handles an incoming client request
     void handle_client(int client_socket);
 
+    // Private method that handles an HTTP request and sends the corresponding response
     void handle_request(int client_socket, const std::string &request);
 
+    // Private method that sends an HTTP response to the client
     void send_response(int client_socket, int status_code, const std::string &status_message,
                        const std::string &content_type, const std::string &body);
 
+    // Private method that reads the contents of a file and determines its content type
     void read_file(const std::string &path, std::string &content, std::string &content_type);
 
+    // Private method that reads the contents of a directory and constructs an HTML page with links to its contents
     void read_dir(const std::string &path, std::string &content);
 
+    // Private method that returns the file extension of a file path
     std::string get_file_extension(const std::string &path);
 
+    // Private method that worker threads use to handle incoming client requests
     void worker_thread();
 
+    // Member variables to store the server's document root directory, port number, and maximum number of threads
     std::string docroot_;
     int port_;
     int max_threads_;
+
+    // Member variables to store the server socket and running state
     int server_socket_;
     bool running_;
 

@@ -47,9 +47,17 @@ void HTTPServer::start() {
     running_ = true;
 
     // Start worker threads
-    // ToDo: Documentation why we don´t use fork()
+    // "fork()" ist eine Funktion in Unix-Systemen, die eine neue Prozessinstanz erzeugt, die eine Kopie des
+    // ursprünglichen Prozesses ist. Der Hauptunterschied zwischen "fork()" und "std::thread" besteht darin,
+    // dass "fork()" eine separate Prozessinstanz erstellt, während "std::thread" einen neuen Thread innerhalb
+    // des aktuellen Prozesses erstellt.
+    // Die Verwendung von "fork()" kann jedoch zu Problemen führen, insbesondere wenn mehrere Threads in einem
+    // Prozess vorhanden sind. Dies liegt daran, dass jeder Thread möglicherweise nicht die gleiche Sicht auf die
+    // Ressourcen des Prozesses hat, was zu unvorhersehbarem Verhalten führen kann.
     for (int i = 0; i < max_threads_; ++i) {
         std::thread t(&HTTPServer::worker_thread, this);
+        // Das "detach()" auf dem Thread-Objekt bewirkt, dass der Thread unabhängig von seinem
+        // Erzeuger-Thread ausgeführt wird.
         t.detach();
     }
 
@@ -168,7 +176,6 @@ void HTTPServer::handle_request(int client_socket, const std::string &request) {
         return;
     }
 
-    // ToDO: Verstehen
     if (S_ISREG(sb.st_mode)) {
         // File
         std::string content, content_type;
@@ -185,6 +192,7 @@ void HTTPServer::handle_request(int client_socket, const std::string &request) {
     }
 }
 
+// Send HTTP response to client and attach body content
 void HTTPServer::send_response(int client_socket, int status_code, const std::string &status_message,
                                const std::string &content_type, const std::string &body) {
     std::ostringstream oss;
@@ -202,6 +210,7 @@ void HTTPServer::send_response(int client_socket, int status_code, const std::st
     }
 }
 
+// Read file content and determine content type
 void HTTPServer::read_file(const std::string &path, std::string &content, std::string &content_type) {
     std::ifstream ifs(path, std::ios::binary);
 
@@ -247,6 +256,7 @@ void HTTPServer::read_file(const std::string &path, std::string &content, std::s
     }
 }
 
+// Read directory content
 void HTTPServer::read_dir(const std::string &path, std::string &content) {
     std::string html_path = path.substr(docroot_.size());
     content = "<html><head><title>" + html_path + "</title></head><body><h1>" + html_path + "</h1><ul>";
@@ -282,6 +292,7 @@ void HTTPServer::read_dir(const std::string &path, std::string &content) {
     content += "</ul></body></html>";
 }
 
+// Get file extension
 std::string HTTPServer::get_file_extension(const std::string &path) {
     std::size_t pos = path.rfind('.');
     if (pos == std::string::npos) {
