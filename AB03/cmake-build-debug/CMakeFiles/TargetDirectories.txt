@@ -1,0 +1,3 @@
+/Users/lucaschoneberg/Desktop/Current Projects/lucaschoeneberg/vs-praktikum/AB03/cmake-build-debug/CMakeFiles/AB03.dir
+/Users/lucaschoneberg/Desktop/Current Projects/lucaschoeneberg/vs-praktikum/AB03/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/lucaschoneberg/Desktop/Current Projects/lucaschoeneberg/vs-praktikum/AB03/cmake-build-debug/CMakeFiles/rebuild_cache.dir
