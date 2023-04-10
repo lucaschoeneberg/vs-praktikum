@@ -12,7 +12,7 @@
 int main() {
     Client client("127.0.0.1", 8999);
 
-    client.fetch_file("test.txt", 100, "test.txt");
+    client.fetch_file(".ninja_log", 100, "test.txt");
 
     return 0;
 

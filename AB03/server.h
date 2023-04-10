@@ -57,6 +57,8 @@ private:
     static int read_file(Session &session, char *buffer, int chunk_size);
 
     int send_response(int chunk_no, int bytes_read, char *buffer, sockaddr_in &client_addr, socklen_t client_len) const;
+
+    int get_file_size(Session &session) const;
 };
 
 #endif //AB03_SERVER_H

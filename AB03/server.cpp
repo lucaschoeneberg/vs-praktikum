@@ -70,9 +70,9 @@ int Server::init_session(int chunk_size, const std::string &file_name) {
 /*
  * Commands:
  * HSOSSTP_INITX;CHUNK_SIZE;FILE_NAME
- * HSOSSTP_SIDXX;SESSION_KEY
+ * HSOSSTP_SIDXX;SESSION_KEY;CHUNK_COUNT
  * HSOSSTP_GETXX;SESSION_KEY;CHUNK_NO
- * HSOSSTP_DATAX;SESSION_KEY;CHUNK_NO;BYTES_READ;DATA
+ * HSOSSTP_DATAX;CHUNK_NO;BYTES_READ;DATA
  *
  * Responses:
  * HSOSSTP_ERROR;REASON
@@ -111,7 +111,12 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
             std::cout << "File not found: " << file_name << std::endl;
             std::cout << "Sent: " << error_msg << std::endl;
         } else {
-            std::string response = "HSOSSTP_SIDXX;" + std::to_string(session_key);
+            Session &session = sessions[session_key];
+            // Aufgerundete Anzahl an Chunks
+            int chunk_count = get_file_size(session) / chunk_size + 1;
+
+            std::string response = "HSOSSTP_SIDXX;" + std::to_string(session_key) + ";" +
+                                   std::to_string(chunk_count);
             sendto(sockfd, response.c_str(), response.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
                    client_len);
             std::cout << "Session initialized: " << session_key << std::endl;
@@ -119,7 +124,15 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
         }
     } else if (command == "HSOSSTP_GETXX") {
         int session_key, chunk_no;
-        rest_stream >> session_key >> chunk_no;
+        if (sscanf(rest.c_str(), "%d;%d", &session_key, &chunk_no) != 2) {
+            std::string error_msg = "HSOSSTP_ERROR;ISE";
+            sendto(sockfd, error_msg.c_str(), error_msg.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
+                   client_len);
+            std::cout << "Invalid request: " << request_str << std::endl;
+            std::cout << "Sent: " << error_msg << std::endl;
+            return;
+        }
+
         auto it = sessions.find(session_key);
         if (it == sessions.end()) {
             std::string error_msg = "HSOSSTP_ERROR;NOS";
@@ -150,14 +163,16 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
     }
 }
 
+// HSOSSTP_DATAX;SESSION_KEY;CHUNK_NO;BYTES_READ;DATA
 int Server::send_response(int chunk_no, int bytes_read, char *buffer, sockaddr_in &client_addr,
                           socklen_t client_len) const {
-    std::string response = "HSOSSTP_DATAX;" + std::to_string(chunk_no) + ";" + std::to_string(bytes_read) + ";";
+    std::string response = "HSOSSTP_DATAX;" + std::to_string(chunk_no) + ";" +
+                           std::to_string(bytes_read) + ";";
     response.append(buffer, bytes_read);
-    int sent = sendto(sockfd, response.c_str(), response.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
-                      client_len);
-    std::cout << "Sent: " << response.c_str() << "  "<< response.size() << std::endl;
-    return sent;
+    ssize_t sent = sendto(sockfd, response.c_str(), response.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
+                          client_len);
+    std::cout << "Sent: " << response.c_str() << "  " << response.size() << std::endl;
+    return static_cast<int>(sent);
 }
 
 int Server::read_file(Session &session, char *buffer, int chunk_size) {
@@ -167,4 +182,15 @@ int Server::read_file(Session &session, char *buffer, int chunk_size) {
 
     session.file_stream.read(buffer, chunk_size);
     return session.file_stream.gcount();
+}
+
+int Server::get_file_size(Session &session) const {
+    if (!session.file_stream.is_open()) {
+        return -1;
+    }
+
+    session.file_stream.seekg(0, std::ios::end);
+    int size = session.file_stream.tellg();
+    session.file_stream.seekg(0, std::ios::beg);
+    return size;
 }

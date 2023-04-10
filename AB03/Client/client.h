@@ -24,7 +24,8 @@ private:
     std::vector<char> buffer;
 
     void request_file(const std::string& file_name, int chunk_size);
-    void save_file(const std::string& output_file_name, int session_key);
+    void save_file(const std::string& output_file_name, int session_key, int response_chunk_count);
+    void init_buffer();
 };
 
 
