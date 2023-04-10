@@ -46,10 +46,10 @@ void Client::fetch_file(const std::string &file_name, int chunk_size, const std:
         int session_key;
         int response_chunk_count;
 
-        sscanf(response.c_str(), "%[^;];%d;%d", response_type.data(), &session_key, &response_chunk_count);
+        sscanf(response.c_str(), "%[^;];%d", response_type.data(), &session_key);
 
         if (response_type == "HSOSSTP_SIDXX") {
-            save_file(output_file_name, session_key, response_chunk_count);
+            save_file(output_file_name, session_key);
         }
     }
 }
@@ -61,7 +61,7 @@ void Client::request_file(const std::string &file_name, int chunk_size) {
     std::cout << "Sent " << init_request.size() << " bytes" << std::endl;
 }
 
-void Client::save_file(const std::string &output_file_name, int session_key, int chunk_count) {
+void Client::save_file(const std::string &output_file_name, int session_key) {
     std::ofstream output_file(output_file_name, std::ios::binary);
     if (!output_file.is_open()) {
         std::cout << "Could not open output file" << std::endl;
@@ -88,48 +88,29 @@ void Client::save_file(const std::string &output_file_name, int session_key, int
         }
 
         buffer.resize(received);
-        std::string data_response(buffer.begin(), buffer.end());
-        int chunk_no_received, bytes_read;
-
-        std::cout << "Received data: " << data_response.c_str() << std::endl;
-        std::string data_type(13, 0);
-        if (sscanf(data_response.c_str(), "%[^;];", data_type.data()) != 1) {
-            std::cout << "Error parsing data type" << std::endl;
-            break;
-        }
-        std::cout << "Received data type: " << data_type.c_str() << std::endl;
+        std::istringstream data_response(std::string(buffer.begin(), buffer.end()));
+        std::string data_type;
+        getline(data_response, data_type, ';');
 
         if (data_type == "HSOSSTP_DATAX") {
-            std::cout << "Data type is correct" << std::endl;
-            init_buffer();
-
-            sscanf(data_response.c_str(), "HSOSSTP_DATAX;%d;%d;%s",
-                   &chunk_no_received,
-                   &bytes_read,
-                   buffer.data());
-
-            // rezise buffer to actual size
-            buffer.resize(bytes_read);
-
-            std::cout << "Received " << bytes_read << " bytes" << std::endl;
-            std::cout << "Received chunk " << chunk_no_received << std::endl;
-            std::cout << "Expected chunk " << chunk_no << std::endl;
-            std::cout << "Buffer size " << buffer.size() << std::endl;
-            std::cout << "Buffer data " << buffer.data() << std::endl;
+            int chunk_no_received, bytes_read;
+            data_response >> chunk_no_received >> std::ws;
+            std::string bytes_read_str;
+            getline(data_response, bytes_read_str, ';');
+            getline(data_response, bytes_read_str, ';');
+            bytes_read = std::stoi(bytes_read_str);
 
             if (chunk_no_received != chunk_no) {
                 std::cout << "Received wrong chunk" << std::endl;
                 break;
             }
-            output_file.write(buffer.data(), bytes_read);
 
-            if (chunk_no == chunk_count - 1) {
-                break;
-            } else {
-                chunk_no++;
-            }
+            std::vector<char> data_buffer(bytes_read);
+            data_response.read(data_buffer.data(), bytes_read);
+            output_file.write(data_buffer.data(), bytes_read);
+
+            chunk_no++;
         } else {
-            std::cout << "Received wrong chunk or answere is wrong" << std::endl;
             break;
         }
     }
@@ -139,7 +120,7 @@ void Client::save_file(const std::string &output_file_name, int session_key, int
 
 // buffer initialization function
 void Client::init_buffer() {
-    buffer.resize(BUFFER_SIZE);
     std::fill(buffer.begin(), buffer.end(), 0);
+    buffer.resize(BUFFER_SIZE);
 }
 

@@ -164,24 +164,27 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
 }
 
 // HSOSSTP_DATAX;SESSION_KEY;CHUNK_NO;BYTES_READ;DATA
-int Server::send_response(int chunk_no, int bytes_read, char *buffer, sockaddr_in &client_addr,
+int Server::send_response(int chunk_no, int bytes_read, const char *buffer, const sockaddr_in &client_addr,
                           socklen_t client_len) const {
-    std::string response = "HSOSSTP_DATAX;" + std::to_string(chunk_no) + ";" +
-                           std::to_string(bytes_read) + ";";
-    response.append(buffer, bytes_read);
-    ssize_t sent = sendto(sockfd, response.c_str(), response.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
+    std::ostringstream response;
+    response << "HSOSSTP_DATAX;" << chunk_no << ";" << bytes_read << ";";
+    response.write(buffer, bytes_read);
+
+    std::string response_str = response.str();
+    ssize_t sent = sendto(sockfd, response_str.c_str(), response_str.size(), 0, reinterpret_cast<const sockaddr *>(&client_addr),
                           client_len);
-    std::cout << "Sent: " << response.c_str() << "  " << response.size() << std::endl;
     return static_cast<int>(sent);
 }
 
-int Server::read_file(Session &session, char *buffer, int chunk_size) {
-    if (!session.file_stream.is_open()) {
+int Server::read_file(Session &session, char *buffer, const std::streamsize chunk_size) {
+    std::ifstream &file_stream = session.file_stream;
+
+    if (!file_stream.is_open()) {
         return -1;
     }
 
-    session.file_stream.read(buffer, chunk_size);
-    return session.file_stream.gcount();
+    file_stream.read(buffer, chunk_size);
+    return static_cast<int>(file_stream.gcount());
 }
 
 int Server::get_file_size(Session &session) const {
