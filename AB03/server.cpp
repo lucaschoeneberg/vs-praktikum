@@ -16,6 +16,11 @@ void Server::run() {
     init();
 }
 
+/**
+ * init initializes the server and starts the main loop
+ *
+ * @return
+ */
 [[noreturn]] int Server::init() {
     session_counter = 1;
 
@@ -36,12 +41,13 @@ void Server::run() {
     }
 
     const int buffer_size = 65536;
-    // init buffer
-    std::vector<char> buffer(buffer_size);
-    sockaddr_in client_addr{};
-    socklen_t client_len = sizeof(client_addr);
 
     while (true) {
+        // init buffer
+        std::vector<char> buffer(buffer_size);
+        sockaddr_in client_addr{};
+        socklen_t client_len = sizeof(client_addr);
+
         int received = recvfrom(sockfd, buffer.data(), buffer_size, 0, (sockaddr *) &client_addr, &client_len);
         if (received > 0) {
             buffer.resize(received);
@@ -50,6 +56,13 @@ void Server::run() {
     }
 }
 
+/**
+ * init_session creates a new session and returns the session key
+ *
+ * @param chunk_size
+ * @param file_name
+ * @return
+ */
 int Server::init_session(int chunk_size, const std::string &file_name) {
     Session session;
     session.chunk_size = chunk_size;
@@ -67,7 +80,7 @@ int Server::init_session(int chunk_size, const std::string &file_name) {
 }
 
 
-/*
+/**
  * Commands:
  * HSOSSTP_INITX;CHUNK_SIZE;FILE_NAME
  * HSOSSTP_SIDXX;SESSION_KEY;CHUNK_COUNT
@@ -84,6 +97,13 @@ int Server::init_session(int chunk_size, const std::string &file_name) {
  * NOS - No session
  * CNF - Chunk not found
  * ISE - Internal server error
+ *
+ * handle_request handles the request and sends the response
+ *
+ * @param request
+ * @param client_addr
+ * @param client_len
+ * @return
  */
 void Server::handle_request(const std::vector<char> &request, sockaddr_in &client_addr, socklen_t client_len) {
     std::string request_str(request.begin(), request.end());
@@ -111,12 +131,7 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
             std::cout << "File not found: " << file_name << std::endl;
             std::cout << "Sent: " << error_msg << std::endl;
         } else {
-            Session &session = sessions[session_key];
-            // Aufgerundete Anzahl an Chunks
-            int chunk_count = get_file_size(session) / chunk_size + 1;
-
-            std::string response = "HSOSSTP_SIDXX;" + std::to_string(session_key) + ";" +
-                                   std::to_string(chunk_count);
+            std::string response = "HSOSSTP_SIDXX;" + std::to_string(session_key);
             sendto(sockfd, response.c_str(), response.size(), 0, reinterpret_cast<sockaddr *>(&client_addr),
                    client_len);
             std::cout << "Session initialized: " << session_key << std::endl;
@@ -163,7 +178,18 @@ void Server::handle_request(const std::vector<char> &request, sockaddr_in &clien
     }
 }
 
-// HSOSSTP_DATAX;SESSION_KEY;CHUNK_NO;BYTES_READ;DATA
+/**
+ * Sends response to client.
+ * Returns number of bytes sent.
+ * Returns -1 on error.
+ *
+ * @param chunk_no
+ * @param bytes_read
+ * @param buffer
+ * @param client_addr
+ * @param client_len
+ * @return
+ */
 int Server::send_response(int chunk_no, int bytes_read, const char *buffer, const sockaddr_in &client_addr,
                           socklen_t client_len) const {
     std::ostringstream response;
@@ -171,11 +197,22 @@ int Server::send_response(int chunk_no, int bytes_read, const char *buffer, cons
     response.write(buffer, bytes_read);
 
     std::string response_str = response.str();
-    ssize_t sent = sendto(sockfd, response_str.c_str(), response_str.size(), 0, reinterpret_cast<const sockaddr *>(&client_addr),
+    ssize_t sent = sendto(sockfd, response_str.c_str(), response_str.size(), 0,
+                          reinterpret_cast<const sockaddr *>(&client_addr),
                           client_len);
     return static_cast<int>(sent);
 }
 
+/**
+ * Reads chunk_size bytes from file_stream into buffer.
+ * Returns number of bytes read.
+ * Returns -1 if file_stream is not open.
+ *
+ * @param session
+ * @param buffer
+ * @param chunk_size
+ * @return
+ */
 int Server::read_file(Session &session, char *buffer, const std::streamsize chunk_size) {
     std::ifstream &file_stream = session.file_stream;
 
@@ -187,6 +224,7 @@ int Server::read_file(Session &session, char *buffer, const std::streamsize chun
     return static_cast<int>(file_stream.gcount());
 }
 
+/*
 int Server::get_file_size(Session &session) const {
     if (!session.file_stream.is_open()) {
         return -1;
@@ -196,4 +234,4 @@ int Server::get_file_size(Session &session) const {
     int size = session.file_stream.tellg();
     session.file_stream.seekg(0, std::ios::beg);
     return size;
-}
+}*/
