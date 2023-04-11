@@ -4,8 +4,8 @@
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>1050</x>
-      <y>210</y>
+      <x>910</x>
+      <y>160</y>
       <w>100</w>
       <h>30</h>
     </coordinates>
@@ -15,8 +15,8 @@
   <element>
     <id>UMLGeneric</id>
     <coordinates>
-      <x>330</x>
-      <y>210</y>
+      <x>190</x>
+      <y>160</y>
       <w>100</w>
       <h>30</h>
     </coordinates>
@@ -26,30 +26,30 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1090</x>
-      <y>230</y>
+      <x>950</x>
+      <y>180</y>
       <w>30</w>
-      <h>500</h>
+      <h>670</h>
     </coordinates>
     <panel_attributes>lt=.</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;480.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;650.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>230</y>
+      <x>230</x>
+      <y>180</y>
       <w>30</w>
-      <h>500</h>
+      <h>680</h>
     </coordinates>
     <panel_attributes>lt=.</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;480.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;660.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>260</y>
+      <x>230</x>
+      <y>210</y>
       <w>750</w>
       <h>60</h>
     </coordinates>
@@ -60,8 +60,8 @@ HSOSTSP_INITX;100;Sample.txt</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>320</y>
+      <x>230</x>
+      <y>270</y>
       <w>750</w>
       <h>50</h>
     </coordinates>
@@ -72,8 +72,8 @@ HSOSSTP_ERROR;FNF</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>410</y>
+      <x>230</x>
+      <y>360</y>
       <w>750</w>
       <h>60</h>
     </coordinates>
@@ -84,8 +84,8 @@ HSOSTSP_INITX;100;Sample2.txt</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>470</y>
+      <x>230</x>
+      <y>420</y>
       <w>750</w>
       <h>50</h>
     </coordinates>
@@ -96,8 +96,8 @@ HSOSSTP_SIDXX;27</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>520</y>
+      <x>230</x>
+      <y>470</y>
       <w>750</w>
       <h>60</h>
     </coordinates>
@@ -108,13 +108,61 @@ HSOSTSP_GETXX;27;0</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>370</x>
-      <y>580</y>
+      <x>230</x>
+      <y>530</y>
       <w>750</w>
       <h>50</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;-
 HSOSSTP_DATAX;0;100;Das ist die erste Zeile ...</panel_attributes>
+    <additional_attributes>10.0;30.0;730.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>230</x>
+      <y>580</y>
+      <w>750</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+HSOSTSP_GETXX;27;1</panel_attributes>
+    <additional_attributes>730.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>230</x>
+      <y>640</y>
+      <w>750</w>
+      <h>50</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+HSOSSTP_DATAX;1;70;Das ist die erste Zeile ...</panel_attributes>
+    <additional_attributes>10.0;30.0;730.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>230</x>
+      <y>690</y>
+      <w>750</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+HSOSTSP_GETXX;27;2</panel_attributes>
+    <additional_attributes>730.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>230</x>
+      <y>750</y>
+      <w>750</w>
+      <h>50</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-
+HSOSSTP_ERROR;NOS</panel_attributes>
     <additional_attributes>10.0;30.0;730.0;10.0</additional_attributes>
   </element>
 </diagram>
