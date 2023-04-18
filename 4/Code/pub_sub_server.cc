@@ -63,7 +63,8 @@ class PubSubServiceImpl final : public PubSubService::Service {
         std::string receiver = stringify(*request);
         subscribers.insert(receiver);
         std::cout << "Subscriber added: " << receiver << std::endl;
-        reply->set_code(0); // Erfolgreich
+        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
+        reply->set_value(return_code_value);
 
         return Status::OK;
     }
@@ -74,7 +75,8 @@ class PubSubServiceImpl final : public PubSubService::Service {
         std::string receiver = stringify(*request);
         subscribers.erase(receiver);
         std::cout << "Subscriber removed: " << receiver << std::endl;
-        reply->set_code(0); // Erfolg
+        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
+        reply->set_value(return_code_value);
 
         return Status::OK;
     }
@@ -100,9 +102,10 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status set_topic(ServerContext *context, const Topic *request,
                      ReturnCode *reply) override {
-        topic = request->name();
+        topic = request->topic();
         std::cout << "Topic set to: " << topic << std::endl;
-        reply->set_code(0); // Erfolg
+        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
+        reply->set_value(return_code_value);
 
         return Status::OK;
     }
