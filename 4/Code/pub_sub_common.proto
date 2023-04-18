@@ -1,0 +1,42 @@
+/*
+ * Definitionen fuer Deliver-Service Publish-Subscribe System.
+ * @hje
+ */
+
+syntax = "proto3";
+
+package pubsub;
+
+// Leere Nachricht (falls nichts zurueckzugeben ist)
+message EmptyMessage {}
+
+// Nachricht an Service
+message Message {
+    string message = 1;
+}
+
+// Thema des Kanals
+message Topic {
+    string topic = 1;
+    string passcode = 2; /* Geheimnis, damit Topic manipuliert werden kann */
+}
+
+// Adresse des Nachrichtenempfängers
+message SubscriberAddress {
+    string ip_address = 1;
+    int32 port = 2;
+}
+
+// Nachricht an Service
+message ReturnCode {
+    enum Values {
+        OK = 0;
+        CANNOT_REGISTER = 1;
+        CLIENT_ALREADY_REGISTERED = 2;
+        CANNOT_UNREGISTER = 3;
+        CANNOT_SET_TOPIC = 4;
+        UNKNOWN_ERROR = 5;    
+        /* Hier koennen weitere Return-Codes ergaenzt werden */
+    }
+    Values value = 1;
+}

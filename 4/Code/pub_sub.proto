@@ -1,0 +1,24 @@
+/*
+ * Protokoll-Datei fuer den Dispatcher-Service Publish-Subscribe System.
+ * @hje
+ */
+
+syntax = "proto3";
+
+package pubsub;
+ 
+import "pub_sub_common.proto";
+
+// Service Definition
+ service PubSubService {
+   // Registrieren / Deregistrieren per Adresse
+   rpc subscribe (SubscriberAddress) returns (ReturnCode) {}
+   rpc unsubscribe (SubscriberAddress) returns (ReturnCode) {}
+   // Thema setzen
+   rpc set_topic (Topic) returns (ReturnCode) {}
+   // Nachrichten publizieren
+   rpc publish (Message) returns (ReturnCode) {}
+}
+
+
+  
