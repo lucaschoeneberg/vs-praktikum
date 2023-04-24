@@ -50,6 +50,7 @@ class PubSubServiceImpl final : public PubSubService::Service {
     // TODO: Channel topic und Subscribers für diesen Server merken
     std::string topic;
     std::set <std::string> subscribers;
+    std::string passcode = "1234";
 
 
     static std::string stringify(const SubscriberAddress &adr) {
@@ -63,9 +64,17 @@ class PubSubServiceImpl final : public PubSubService::Service {
         std::string receiver = stringify(*request);
         subscribers.insert(receiver);
         std::cout << "Subscriber added: " << receiver << std::endl;
-        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
-        reply->set_value(return_code_value);
+        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
 
+        // Eventueller Code für die Aufgabe
+        //       if(subscribtions.count(s)){
+        //          reply->set_value(pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED);
+        //      }else{
+        //          PubSubDelivService::Stub stub (grpc::CreateChannel(s, grpc::InsecureChannelCredentials()));
+        //          subscribtions.insert({s,stub});
+        //          reply->set_value(pubsub::ReturnCode_Values_OK);
+        //          std::cout << "Neuer Client hat abonniert: " << s << std::endl;
+        //      }
         return Status::OK;
     }
 
@@ -75,9 +84,16 @@ class PubSubServiceImpl final : public PubSubService::Service {
         std::string receiver = stringify(*request);
         subscribers.erase(receiver);
         std::cout << "Subscriber removed: " << receiver << std::endl;
-        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
-        reply->set_value(return_code_value);
+        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
 
+        // Eventueller Code für die Aufgabe
+        //       if(subscribtions.count(s) == 0){
+        //          reply->set_value(pubsub::ReturnCode_Values_CANNOT_UNREGISTER);
+        //      }else{
+        //          subscribtions.erase(s);
+        //          reply->set_value(pubsub::ReturnCode_Values_OK);
+        //          std::cout << "Client wurde deabonniert: " << s << std::endl;
+        //      }
         return Status::OK;
     }
 
@@ -93,10 +109,21 @@ class PubSubServiceImpl final : public PubSubService::Service {
                    ReturnCode *reply) override {
         // TODO: Nachricht an alle Subscriber verteilen
         // for (subscriber in subscribers) {
-        //    status = subscriber.deliver(request,  reply);
-        //    handle_status(status, reply);
+        //   status = subscriber.deliver(request,  reply);
+        //   handle_status(status, reply);
         // }
+        for (const auto &subscriber: subscribers) {
+            auto channel = grpc::CreateChannel(subscriber, grpc::InsecureChannelCredentials());
+            std::unique_ptr <PubSubDelivService::Stub> stub = PubSubDelivService::NewStub(channel);
 
+            ClientContext client_context;
+            EmptyMessage response;
+
+            Status status = stub->deliver(&client_context, *request, &response);
+            handle_status("publish", status);
+        }
+
+        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
         return Status::OK;
     }
 
@@ -104,8 +131,16 @@ class PubSubServiceImpl final : public PubSubService::Service {
                      ReturnCode *reply) override {
         topic = request->topic();
         std::cout << "Topic set to: " << topic << std::endl;
-        ::pubsub::ReturnCode_Values return_code_value = ::pubsub::ReturnCode_Values::ReturnCode_Values_OK;
-        reply->set_value(return_code_value);
+        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
+
+        if (request->passcode() == passcode) {
+            topic = request->topic();
+            std::cout << "Topic set to: " << topic << std::endl;
+            reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
+        } else {
+            std::cout << "Incorrect passcode provided" << std::endl;
+            reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_CANNOT_SET_TOPIC);
+        }
 
         return Status::OK;
     }
@@ -114,6 +149,7 @@ public:
     PubSubServiceImpl() {
         // TODO: Topic initialisieren
         //    topic = "<no topic set>";
+        topic = "<no topic set>";
     }
 };
 
@@ -138,7 +174,7 @@ void RunServer() {
     std::cout << "[ Server launched on " << server_address << " ]" << std::endl;
 
     // Warten auf das Ende Servers. Das muss durch einen anderen Thread
-    // ausgeloest werden.  Alternativ kann der ganze Prozess beendet werden.
+    // ausgelöst werden.  Alternativ kann der ganze Prozess beendet werden.
     server->Wait();
 }
 
