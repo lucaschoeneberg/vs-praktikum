@@ -32,9 +32,14 @@ using pubsub::ReturnCode;
 using pubsub::Topic;
 
 /**** Dies muss editiert werden! ****/
-char receiverExecFile[] = RECEIVER_EXEC_FILE;
+std::string receiverExecFile = RECEIVER_EXEC_FILE;
 
 /* TODO: noch notwendig? */
+// Die trim-Funktion ist nicht unbedingt erforderlich,
+// weil sie lediglich das erste Vorkommen von '\n' durch '\0' ersetzt. Da wir nun
+// std::getline zum Lesen der Eingabezeilen verwenden, wird das abschließende
+// '\n'-Zeichen automatisch entfernt. Daher ist die trim-Funktion in diesem Fall
+// nicht notwendig.
 void trim(std::string &s) {
     /* erstes '\n' durch '\0' ersetzen */
     for (int i = 0; i < s.length(); i++) {
@@ -263,10 +268,7 @@ int main(int argc, char **argv) {
     // Einlesen der Argumente. Der Endpunkt des Aufrufs
     // kann über die Option --target eingestellt werden.
     Args args(argc, argv);
-
-    PubSubClient client(grpc::CreateChannel(
-            args.target, grpc::InsecureChannelCredentials()));
-
+    PubSubClient client(grpc::CreateChannel(args.target,grpc::InsecureChannelCredentials()));
     client.run_shell(args);
 
     return 0;
