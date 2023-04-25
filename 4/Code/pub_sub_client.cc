@@ -32,7 +32,7 @@ using pubsub::ReturnCode;
 using pubsub::Topic;
 
 /**** Dies muss editiert werden! ****/
-const char* receiverExecFile = RECEIVER_EXEC_FILE;
+char receiverExecFile[] = RECEIVER_EXEC_FILE;
 
 /* TODO: noch notwendig? */
 // Die trim-Funktion ist nicht unbedingt erforderlich,
@@ -195,7 +195,8 @@ public:
                     SubscriberAddress request;
                     ClientContext context;
                     ReturnCode reply;
-                    request.set_ip_address(get_receiver_ip());
+                    request.set_ip_address(PUBSUB_RECEIVER_IP);
+                    request.set_port(PUBSUB_RECEIVER_PORT);
 
                     Status status = stub_->subscribe(&context, request, &reply);
 
@@ -263,7 +264,8 @@ int main(int argc, char **argv) {
     // Einlesen der Argumente. Der Endpunkt des Aufrufs
     // kann über die Option --target eingestellt werden.
     Args args(argc, argv);
-    PubSubClient client(grpc::CreateChannel(args.target,grpc::InsecureChannelCredentials()));
+    PubSubClient client(grpc::CreateChannel(args.target, grpc::InsecureChannelCredentials()));
+
     client.run_shell(args);
 
     return 0;

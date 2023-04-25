@@ -39,8 +39,15 @@ class PubSubDelivServiceImpl final : public PubSubDelivService::Service {
         std::string time_string = std::ctime(&now_c);
         // Remove the trailing newline character
         time_string.pop_back();
-        // Print the message and timestamp to the console
-        std::cout << "Received message \"" << request->message() << "\" at " << time_string << std::endl;
+
+        // Check if the string is empty
+        if (request->message().empty()) {
+            // Print the message and timestamp to the console
+            std::cout << "Received empty message at " << time_string << std::endl;
+        } else{
+            // Print the message and timestamp to the console
+            std::cout << "Received message \"" << request->message() << "\" at " << time_string << std::endl;
+        }
 
         return Status::OK;
     }
