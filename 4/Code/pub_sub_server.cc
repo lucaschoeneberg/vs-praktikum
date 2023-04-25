@@ -49,7 +49,7 @@ using pubsub::Topic;
 class PubSubServiceImpl final : public PubSubService::Service {
     // TODO: Channel topic und Subscribers für diesen Server merken
     std::string topic;
-    std::set <std::string> subscribers;
+    std::map<std::string, std::unique_ptr<PubSubDelivService::Stub>> subscribers;
     std::string passcode = "1234";
 
 
@@ -62,38 +62,29 @@ class PubSubServiceImpl final : public PubSubService::Service {
     Status subscribe(ServerContext *context, const SubscriberAddress *request,
                      ReturnCode *reply) override {
         std::string receiver = stringify(*request);
-        subscribers.insert(receiver);
-        std::cout << "Subscriber added: " << receiver << std::endl;
-        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
 
-        // Eventueller Code für die Aufgabe
-        //       if(subscribtions.count(s)){
-        //          reply->set_value(pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED);
-        //      }else{
-        //          PubSubDelivService::Stub stub (grpc::CreateChannel(s, grpc::InsecureChannelCredentials()));
-        //          subscribtions.insert({s,stub});
-        //          reply->set_value(pubsub::ReturnCode_Values_OK);
-        //          std::cout << "Neuer Client hat abonniert: " << s << std::endl;
-        //      }
+        if (subscribers.count(receiver)) {
+            reply->set_value(pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED);
+        } else {
+            auto channel = grpc::CreateChannel(receiver, grpc::InsecureChannelCredentials());
+            subscribers.insert({receiver, PubSubDelivService::NewStub(channel)});
+            reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
+            std::cout << "Subscriber added: " << receiver << std::endl;
+        }
         return Status::OK;
     }
 
     Status unsubscribe(ServerContext *context, const SubscriberAddress *request,
                        ReturnCode *reply) override {
-        // TODO: Client austragen und Info ausgeben
         std::string receiver = stringify(*request);
-        subscribers.erase(receiver);
-        std::cout << "Subscriber removed: " << receiver << std::endl;
-        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
 
-        // Eventueller Code für die Aufgabe
-        //       if(subscribtions.count(s) == 0){
-        //          reply->set_value(pubsub::ReturnCode_Values_CANNOT_UNREGISTER);
-        //      }else{
-        //          subscribtions.erase(s);
-        //          reply->set_value(pubsub::ReturnCode_Values_OK);
-        //          std::cout << "Client wurde deabonniert: " << s << std::endl;
-        //      }
+        if (subscribers.count(receiver) == 0) {
+            reply->set_value(pubsub::ReturnCode_Values_CANNOT_UNREGISTER);
+        } else {
+            subscribers.erase(receiver);
+            reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
+            std::cout << "Subscriber removed: " << receiver << std::endl;
+        }
         return Status::OK;
     }
 
@@ -107,19 +98,15 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status publish(ServerContext *context, const Message *request,
                    ReturnCode *reply) override {
-        // TODO: Nachricht an alle Subscriber verteilen
-        // for (subscriber in subscribers) {
-        //   status = subscriber.deliver(request,  reply);
-        //   handle_status(status, reply);
-        // }
         for (const auto &subscriber: subscribers) {
-            auto channel = grpc::CreateChannel(subscriber, grpc::InsecureChannelCredentials());
-            std::unique_ptr <PubSubDelivService::Stub> stub = PubSubDelivService::NewStub(channel);
+            // Nicht mehr notwendig da bereits in subscribe erstellt
+            // auto channel = grpc::CreateChannel(subscriber, grpc::InsecureChannelCredentials());
+            // std::unique_ptr <PubSubDelivService::Stub> stub = PubSubDelivService::NewStub(channel);
 
             ClientContext client_context;
             EmptyMessage response;
 
-            Status status = stub->deliver(&client_context, *request, &response);
+            Status status = subscriber.second->deliver(&client_context, *request, &response);
             handle_status("publish", status);
         }
 
@@ -129,10 +116,6 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status set_topic(ServerContext *context, const Topic *request,
                      ReturnCode *reply) override {
-        topic = request->topic();
-        std::cout << "Topic set to: " << topic << std::endl;
-        reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
-
         if (request->passcode() == passcode) {
             topic = request->topic();
             std::cout << "Topic set to: " << topic << std::endl;
@@ -147,8 +130,6 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
 public:
     PubSubServiceImpl() {
-        // TODO: Topic initialisieren
-        //    topic = "<no topic set>";
         topic = "<no topic set>";
     }
 };
