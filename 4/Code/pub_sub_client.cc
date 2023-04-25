@@ -97,6 +97,7 @@ private:
     }
 
     static std::string stringify(pubsub::ReturnCode_Values value) {
+    std::string stringify(pubsub::ReturnCode_Values value) {
         switch (value) {
             case pubsub::ReturnCode_Values_OK:
                 return "OK";
