@@ -1,0 +1,67 @@
+/*
+ * Definitionen fuer Deliver-Service Publish-Subscribe System.
+ * @hje
+ */
+
+syntax = "proto3";
+
+package pubsub;
+
+// Leere Nachricht (falls nichts zurueckzugeben ist)
+message EmptyMessage {}
+
+// Nachricht an Service
+message Message {
+    string message = 1;
+}
+
+// Thema des Kanals
+message Topic {
+    string topic = 1;
+    string passcode = 2; /* Geheimnis, damit Topic manipuliert werden kann */
+}
+
+// Adresse des Nachrichtenempfängers
+message SubscriberAddress {
+    string ip_address = 1;
+    int32 port = 2;
+}
+
+// Nachricht an Service
+message ReturnCode {
+    enum Values {
+        OK = 0;
+        CANNOT_REGISTER = 1;
+        CLIENT_ALREADY_REGISTERED = 2;
+        CANNOT_UNREGISTER = 3;
+        CANNOT_SET_TOPIC = 4;
+        NO_HASH_FOR_SESSION = 5;
+        WRONG_HASH_FOR_SESSION = 6;
+        USER_ALREADY_LOGGED_IN = 7;
+        SESSION_INVALID = 8;
+        UNKNOWN_ERROR = 9;
+        /* Hier koennen bei Bedarf weitere Return-Codes ergaenzt werden */
+    }
+    Values value = 1;
+}
+
+// Nutzername
+message UserName {
+    string name = 1;
+}
+// Sitzungschluessel
+message SessionId {
+    int32 id = 1;
+}
+// Generische Nachricht
+message PubSubParam {
+    oneof param {
+        /* Achtung: Camel-Case Schreibweise wird bei C++ ignoriert */
+        Message optMessage = 1;
+        Topic optTopic = 2;
+        SubscriberAddress optAddress = 3;
+        EmptyMessage void = 4;
+    }
+    SessionId sid = 5;
+    string hash_string = 6;
+}

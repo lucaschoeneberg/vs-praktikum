@@ -1,0 +1,17 @@
+/*
+ * Protokoll-Datei fuer Delivery-Service als Teil des Publish-Subscribe System.
+ * @hje
+ */
+ 
+syntax = "proto3";
+
+package pubsub;
+
+import "pub_sub_common.proto";
+
+// Service Definition
+service PubSubDelivService {
+  // Nur eine Remote Prozedur; es wird nichts zurueck gegeben
+  rpc deliver (Message) returns (EmptyMessage) {}
+}
+
