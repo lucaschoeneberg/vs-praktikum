@@ -47,7 +47,6 @@ using pubsub::Topic;
  */
 // Implementierung des Service
 class PubSubServiceImpl final : public PubSubService::Service {
-    // TODO: Channel topic und Subscribers für diesen Server merken
     std::string topic;
     std::map<std::string, std::unique_ptr<PubSubDelivService::Stub>> subscribers;
     std::string passcode = "1234";
@@ -61,30 +60,37 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status subscribe(ServerContext *context, const SubscriberAddress *request,
                      ReturnCode *reply) override {
+        std::cout << "Attempting to subscribe" << std::endl;
         std::string receiver = stringify(*request);
 
         if (subscribers.count(receiver)) {
             reply->set_value(pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED);
+            std::cout << "Subscriber already registered: " << receiver << std::endl;
         } else {
             auto channel = grpc::CreateChannel(receiver, grpc::InsecureChannelCredentials());
             subscribers.insert({receiver, PubSubDelivService::NewStub(channel)});
             reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
             std::cout << "Subscriber added: " << receiver << std::endl;
         }
+
+        std::cout << std::endl;
         return Status::OK;
     }
 
     Status unsubscribe(ServerContext *context, const SubscriberAddress *request,
                        ReturnCode *reply) override {
+        std::cout << "Attempting to unsubscribe" << std::endl;
         std::string receiver = stringify(*request);
 
         if (subscribers.count(receiver) == 0) {
             reply->set_value(pubsub::ReturnCode_Values_CANNOT_UNREGISTER);
+            std::cout << "Subscriber not found: " << receiver << std::endl;
         } else {
             subscribers.erase(receiver);
             reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
             std::cout << "Subscriber removed: " << receiver << std::endl;
         }
+        std::cout << std::endl;
         return Status::OK;
     }
 
@@ -98,6 +104,9 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status publish(ServerContext *context, const Message *request,
                    ReturnCode *reply) override {
+        std::cout << "Publishing message: " << request->message() << std::endl;
+        std::cout << "Topic: " << topic << std::endl;
+        std::cout << "Subscribers: " << subscribers.size() << std::endl;
         for (const auto &subscriber: subscribers) {
             // Nicht mehr notwendig da bereits in subscribe erstellt
             // auto channel = grpc::CreateChannel(subscriber, grpc::InsecureChannelCredentials());
@@ -106,16 +115,21 @@ class PubSubServiceImpl final : public PubSubService::Service {
             ClientContext client_context;
             EmptyMessage response;
 
+            std::cout << "Delivering message to: " << subscriber.first << std::endl;
             Status status = subscriber.second->deliver(&client_context, *request, &response);
             handle_status("publish", status);
         }
 
         reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
+
+        std::cout << std::endl;
         return Status::OK;
     }
 
     Status set_topic(ServerContext *context, const Topic *request,
                      ReturnCode *reply) override {
+        std::cout << "Setting topic to: " << request->topic() << std::endl;
+
         if (request->passcode() == passcode) {
             topic = request->topic();
             std::cout << "Topic set to: " << topic << std::endl;
@@ -124,7 +138,7 @@ class PubSubServiceImpl final : public PubSubService::Service {
             std::cout << "Incorrect passcode provided" << std::endl;
             reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_CANNOT_SET_TOPIC);
         }
-
+        std::cout << std::endl;
         return Status::OK;
     }
 

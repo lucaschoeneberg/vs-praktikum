@@ -34,7 +34,7 @@ class PubSubDelivServiceImpl final : public PubSubDelivService::Service {
         // Get the current time
         auto now = std::chrono::system_clock::now();
         // Convert to a time_t object
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now)
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         // Convert to a string
         std::string time_string = std::ctime(&now_c);
         // Remove the trailing newline character
