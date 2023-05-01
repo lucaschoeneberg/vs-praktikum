@@ -7,8 +7,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
-#include <stdio.h>
+#include <cstdio>
+#include <openssl/evp.h>
 #include <grpcpp/grpcpp.h>
 
 // Diese Includes werden generiert.
@@ -17,6 +17,7 @@
 #include "pub_sub_config.h"
 
 #include <unistd.h>
+#include <iomanip>
 
 // Notwendige gRPC Klassen im Client.
 using grpc::Channel;
@@ -30,21 +31,16 @@ using pubsub::SubscriberAddress;
 using pubsub::PubSubService;
 using pubsub::ReturnCode;
 using pubsub::Topic;
+using pubsub::PubSubParam;
 
 /**** Dies muss editiert werden! ****/
 char receiverExecFile[] = RECEIVER_EXEC_FILE;
 
-/* TODO: noch notwendig? */
-// Die trim-Funktion ist nicht unbedingt erforderlich,
-// weil sie lediglich das erste Vorkommen von '\n' durch '\0' ersetzt. Da wir nun
-// std::getline zum Lesen der Eingabezeilen verwenden, wird das abschließende
-// '\n'-Zeichen automatisch entfernt. Daher ist die trim-Funktion in diesem Fall
-// nicht notwendig.
 void trim(std::string &s) {
     /* erstes '\n' durch '\0' ersetzen */
-    for (int i = 0; i < s.length(); i++) {
-        if (s[i] == '\n') {
-            s[i] = '\0';
+    for (char & i : s) {
+        if (i == '\n') {
+            i = '\0';
             break;
         }
     }
@@ -83,39 +79,98 @@ static std::string get_receiver_ip() {
     // Diese koennte auch dynamisch ermittelt werden. 
     // Dann aber: alle Adapter und die dafuer vorgesehenen IP Adresse durchgehen; 
     // eine davon auswaehlen. Das funktioniert aber auch nur im lokalen Netz.
-    // Was ist wenn NAT verwendet wird? Oder Proxies? 
+    // Was ist, wenn NAT verwendet wird? Oder Proxies?
     return PUBSUB_RECEIVER_IP;
 }
 
 class PubSubClient {
+
 private:
-    void print_prompt(const Args &args) {
+    static void print_prompt(const Args &args) {
         std::cout << "Pub / sub server is: " << args.target << std::endl;
     }
 
-    void print_help() {
+    static void print_help() {
         std::cout << "Client usage: \n";
+        std::cout << "     'login' to login;\n";
+        std::cout << "     'logout' to logout (if logged in);\n";
         std::cout << "     'quit' to exit;\n";
         std::cout << "     'set_topic' to set new topic;\n";
         std::cout << "     'subscribe' subscribe to server & register / start receiver;\n";
         std::cout << "     'unsubscribe' from this server & terminate receiver.\n";
     }
 
-    std::string stringify(pubsub::ReturnCode_Values value) {
+    /*  OK = 0;
+        CANNOT_REGISTER = 1;
+        CLIENT_ALREADY_REGISTERED = 2;
+        CANNOT_UNREGISTER = 3;
+        CANNOT_SET_TOPIC = 4;
+        NO_HASH_FOR_SESSION = 5;
+        NO_VALID_HASH = 6;
+        WRONG_HASH_FOR_SESSION = 7;
+        USER_ALREADY_LOGGED_IN = 8;
+        SESSION_INVALID = 9;
+        UNKNOWN_ERROR = 10;
+     */
+    static std::string stringify(pubsub::ReturnCode_Values value) {
         switch (value) {
             case pubsub::ReturnCode_Values_OK:
                 return "OK";
-            case pubsub::ReturnCode_Values_UNKNOWN_ERROR:
-                return "ERROR";
+            case pubsub::ReturnCode_Values_CANNOT_REGISTER:
+                return "CANNOT_REGISTER";
+            case pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED:
+                return "CLIENT_ALREADY_REGISTERED";
+            case pubsub::ReturnCode_Values_CANNOT_UNREGISTER:
+                return "CANNOT_UNREGISTER";
             case pubsub::ReturnCode_Values_CANNOT_SET_TOPIC:
-                return "TOPIC_NOT_FOUND";
+                return "CANNOT_SET_TOPIC";
+            case pubsub::ReturnCode_Values_NO_HASH_FOR_SESSION:
+                return "NO_HASH_FOR_SESSION";
+            case pubsub::ReturnCode_Values_NO_VALID_HASH:
+                return "NO_VALID_HASH";
+            case pubsub::ReturnCode_Values_WRONG_HASH_FOR_SESSION:
+                return "WRONG_HASH_FOR_SESSION";
+            case pubsub::ReturnCode_Values_USER_ALREADY_LOGGED_IN:
+                return "USER_ALREADY_LOGGED_IN";
+            case pubsub::ReturnCode_Values_SESSION_INVALID:
+                return "SESSION_INVALID";
             default:
-                return "UNKNOWN";
+                return "UNKNOWN_ERROR";
         }
     }
 
+    static std::string hash_sha(const std::string &input) {
+        unsigned char hash[EVP_MAX_MD_SIZE];
+        unsigned int hash_length;
 
-    void handle_status(const std::string operation, Status &status, ReturnCode &reply) {
+        const EVP_MD *md = EVP_sha256();
+        EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+
+        EVP_DigestInit_ex(mdctx, md, nullptr);
+        EVP_DigestUpdate(mdctx, input.c_str(), input.size());
+        EVP_DigestFinal_ex(mdctx, hash, &hash_length);
+        EVP_MD_CTX_free(mdctx);
+
+        std::stringstream ss;
+        for (unsigned int i = 0; i < hash_length; ++i) {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+        }
+
+        return ss.str();
+    }
+
+    static std::string generate_hash(const int session_id, const std::string &data, const std::string &password) {
+        // HASH: hash_sha(session_id + hash_sha(username + password))
+        std::string hash = std::to_string(session_id) + hash_sha(data + password);
+        return hash_sha(hash);
+    }
+
+    static std::string generate_loginHash(const pubsub::UserName &username, const std::string &password) {
+        // HASH: hash_sha(username + password)
+        return hash_sha(username.name() + password);
+    }
+
+    static void handle_status(const std::string &operation, Status &status, ReturnCode &reply) {
         // Status auswerten
         if (status.ok()) {
             std::cout << operation << " -> " << stringify(reply.value()) << std::endl;
@@ -125,13 +180,22 @@ private:
         }
     }
 
+    static void handle_status(const std::string &operation, Status &status) {
+        if (!status.ok()) {
+            std::cout << "RPC error: " << status.error_code() << " (" << status.error_message()
+                      << ")" << std::endl;
+        } else {
+            std::cout << operation << " -> OK" << std::endl;
+        }
+    }
+
 public:
-    PubSubClient(std::shared_ptr <Channel> channel)
+    explicit PubSubClient(const std::shared_ptr<Channel> &channel)
             : stub_(PubSubService::NewStub(channel)) {
     }
 
     void run_shell(const Args &args) {
-        /* PID der Receiver Console */
+        /* PID of the Receiver Console */
         int rec_pid = -1;
 
         print_prompt(args);
@@ -140,67 +204,136 @@ public:
         std::string cmd;
         do {
             std::cout << "> ";
-            // Eingabezeile lesen
+            // Read input line
             getline(std::cin, cmd);
-            // std::cin >> cmd;
             trim(cmd);
             if (cmd.length() == 0)
                 continue;
 
-            if (cmd.compare("set_topic") == 0) {
+            if (cmd == "login") {
+                // Initialize Client Context
+                ClientContext session_context;
+                // Placeholder for Request & Reply.
+
+                // Read username & password
+                pubsub::UserName user;
+                std::cout << "enter user> ";
+                std::string user_;
+                getline(std::cin, user_);
+                trim(user_);
+                user.set_name(user_);
+
+                // Get Session ID
+                auto *session_id = new pubsub::SessionId();
+                Status status = stub_->get_session(&session_context, user, session_id);
+                handle_status("getSessionID()", status);
+                if (!status.ok()) {
+                    continue;
+                }
+
+                // Read password
+                std::cout << "enter password> ";
+                std::string password;
+                getline(std::cin, password);
+                trim(password);
+
+                // Calculate hash value
+                // Hash(session_id;topic;Hash(user;password))
+                loginHash = generate_loginHash(user, password);
+                std::cout << "Generated loginHash: " << loginHash << std::endl;
+
+                PubSubParam request;
+                request.set_allocated_sid(session_id);
+                request.set_allocated_hash_string(new std::string(generate_hash(session_id->id(), "", loginHash)));
+
+                // Make RPC
+                ReturnCode reply;
+                ClientContext validate_context;
+                status = stub_->validate(&validate_context, request, &reply);
+                PubSubClient::handle_status("validate()", status, reply);
+            } else if (cmd == "logout") {
+                ClientContext context;
+                ReturnCode reply;
+                pubsub::SessionId session;
+                session.set_id(sessionID);
+                Status status = stub_->invalidate(&context, session, &reply);
+                PubSubClient::handle_status("logout", status, reply);
+                if (status.ok()) {
+                    std::cout << "logout successfull> " << std::endl;
+                }
+            } else if (cmd == "set_topic") {
                 std::string topic;
                 std::cout << "enter topic> ";
                 getline(std::cin, topic);
                 trim(topic);
-                // Passcode einlesen, damit topic gesetzt werden darf.
+                // Read passcode to set the topic.
                 std::string passcode;
                 std::cout << "enter passcode> ";
                 getline(std::cin, passcode);
                 trim(passcode);
 
-                // Platzhalter fuer Request, Kontext & Reply.
-                // Muss hier lokal definiert werden,
-                // da es sonst Probleme mit der Speicherfreigabe gibt.
-                Topic request;
-                request.set_topic(topic);
-                request.set_passcode(passcode);
+                // Create request
+                PubSubParam request;
 
-                // Kontext kann die barbeitung der RPCs beeinflusst werden. Wird nicht genutzt.
+                // Set topic
+                auto *optTopic = new Topic();
+                optTopic->set_topic(topic);
+                optTopic->set_passcode(passcode);
+                request.set_allocated_opttopic(optTopic);
+
+                // Set session ID
+                auto *sid = new pubsub::SessionId();
+                sid->set_id(sessionID);
+                request.set_allocated_sid(sid);
+
+                // Set hash
+                request.set_allocated_hash_string(
+                        new std::string(generate_hash(sid->id(), topic + passcode, loginHash)));
+
+                // Context can influence the processing of RPCs. Not used here.
                 ClientContext context;
                 ReturnCode reply;
                 Status status = stub_->set_topic(&context, request, &reply);
 
-                // Status / Reply behandeln
-                this->handle_status("set_topic()", status, reply);
-            } else if (cmd.compare("subscribe") == 0) {
-                /* Ueberpruefen, ob Binary des Receivers existiert */
+                // Handle status / reply
+                PubSubClient::handle_status("set_topic()", status, reply);
+            } else if (cmd == "subscribe") {
+                /* Check if Receiver binary exists */
                 if (access(receiverExecFile, X_OK) != -1) {
-                    /* Receiver starten */
+                    /* Start receiver */
                     if ((rec_pid = fork()) < 0) {
                         std::cerr << "Cannot create process for receiver!\n";
                     } else if (rec_pid == 0) {
-                        /* Der Shell-Aufruf */
-                        /* xterm -fa 'Monospace' -fs 12 -T Receiver -e ...pub_sub_deliv */
-                        /* kann nicht 1:1 uebertragen werden. Bei Aufruf via exec() */
-                        /* verhaelt sich das Terminal anders. */
-                        /* Alternative: Aufruf von xterm ueber ein Shell-Skript. */
-                        /* Allerdings haette man dann 2 Kind-Prozesse. */
-                        execl("/usr/bin/xterm", "Receiver", "-fs", "14", receiverExecFile, (char *) NULL);
-                        /* -fs 14 wird leider ignoriert! */
-                        exit(0); /* Kind beenden */
+                        execl("/usr/bin/xterm", "Receiver", "-fs", "14", receiverExecFile, (char *) nullptr);
+                        exit(0); /* End child process */
                     }
 
-                    /* Platzhalter wie oben lokal erstellen ... */
+                    // Create request
+                    PubSubParam request;
 
-                    SubscriberAddress request;
+                    // Set Subscriber Address
+                    auto *optAddress = new SubscriberAddress();
+                    optAddress->set_ip_address(PUBSUB_RECEIVER_IP);
+                    optAddress->set_port(PUBSUB_RECEIVER_PORT);
+                    request.set_allocated_optaddress(optAddress);
+
+                    // Set hash
+                    request.set_allocated_hash_string(
+                            new std::string(
+                                    generate_hash(sessionID, get_receiver_ip() + std::to_string(PUBSUB_RECEIVER_PORT),
+                                                  loginHash)));
+
+                    // Set session ID
+                    auto *sid = new pubsub::SessionId();
+                    sid->set_id(sessionID);
+                    request.set_allocated_sid(sid);
+
                     ClientContext context;
                     ReturnCode reply;
-                    request.set_ip_address(PUBSUB_RECEIVER_IP);
-                    request.set_port(PUBSUB_RECEIVER_PORT);
 
                     Status status = stub_->subscribe(&context, request, &reply);
 
-                    this->handle_status("subscribe()", status, reply);
+                    PubSubClient::handle_status("subscribe()", status, reply);
                 } else {
                     std::cerr << "Cannot find message receiver executable ("
                               << receiverExecFile << ")!\n";
@@ -208,53 +341,84 @@ public:
                     char c = getc(stdin);
                     continue;
                 }
-            } else if ((cmd.compare("quit") == 0) ||
-                       (cmd.compare("unsubscribe") == 0)) {
-                /* Receiver console beenden */
+            } else if ((cmd == "quit") ||
+                       (cmd == "unsubscribe")) {
+                /* Terminate receiver console */
                 if (rec_pid > 0) {
                     if (kill(rec_pid, SIGTERM) != 0)
                         std::cerr << "Cannot terminate message receiver!\n";
                     else
                         rec_pid = -1;
                 }
-                /* Bei quit muss ebenfalls ein unsubscribe() gemacht werden. */
+                /* An unsubscribe() also needs to be done in the case of "quit". */
 
+                PubSubParam request;
+                auto *optaddress = new SubscriberAddress();
+
+                optaddress->set_ip_address(PUBSUB_RECEIVER_IP);
+                optaddress->set_port(PUBSUB_RECEIVER_PORT);
+                request.set_allocated_optaddress(optaddress);
+
+                // Set hash
+                request.set_allocated_hash_string(
+                        new std::string(
+                                generate_hash(sessionID, get_receiver_ip() + std::to_string(PUBSUB_RECEIVER_PORT),
+                                              loginHash)));
+
+                // Set session ID
+                auto *sid = new pubsub::SessionId();
+                sid->set_id(sessionID);
+                request.set_allocated_sid(sid);
 
                 ClientContext context;
                 ReturnCode reply;
-                SubscriberAddress request;
-
-                request.set_ip_address(PUBSUB_RECEIVER_IP);
-                request.set_port(PUBSUB_RECEIVER_PORT);
 
                 Status status = stub_->unsubscribe(&context, request, &reply);
+                PubSubClient::handle_status("unsubscribe()", status, reply);
 
-                this->handle_status("unsubscribe()", status, reply);
-
-                /* Shell beenden nur bei quit */
-                if (cmd.compare("quit") == 0)
-                    break; /* Shell beenden */
-            } else  /* kein Kommando -> publish() aufrufen */
+                /* Terminate shell only if "quit" */
+                if (cmd == "quit")
+                    break; /* Terminate shell */
+            } else  /* no command -> call publish() */
             {
                 std::string message;
                 std::cout << "enter message: > ";
                 getline(std::cin, message);
                 trim(message);
 
-                Message request;
-                request.set_message(message);
+                // Create request
+                PubSubParam request;
 
+                auto *optMessage = new Message();
+                optMessage->set_message(message);
+                request.set_allocated_optmessage(optMessage);
+
+                // Set hash
+                request.set_allocated_hash_string(
+                        new std::string(
+                                generate_hash(sessionID, message,
+                                              loginHash)));
+
+                // Set session ID
+                auto *sid = new pubsub::SessionId();
+                sid->set_id(sessionID);
+                request.set_allocated_sid(sid);
+
+                // Context can influence the processing of RPCs. Not used here.
                 ClientContext context;
                 ReturnCode reply;
                 Status status = stub_->publish(&context, request, &reply);
 
-                this->handle_status("publish()", status, reply);
+                PubSubClient::handle_status("publish()", status, reply);
             }
-        } while (1);
+        } while (true);
+
     }
 
 private:
-    std::unique_ptr <PubSubService::Stub> stub_;
+    std::unique_ptr<PubSubService::Stub> stub_;
+    int sessionID;
+    std::string loginHash;
 };
 
 int main(int argc, char **argv) {

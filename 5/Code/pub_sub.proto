@@ -12,21 +12,18 @@ import "pub_sub_common.proto";
 // Service Definition
 service PubSubService {
   // Registrieren / Deregistrieren per Adresse
-  rpc subscribe (SubscriberAddress) returns (ReturnCode) {}
-  rpc unsubscribe (SubscriberAddress) returns (ReturnCode) {}
+  rpc subscribe (PubSubParam) returns (ReturnCode) {}
+  rpc unsubscribe (PubSubParam) returns (ReturnCode) {}
   // Thema setzen
-  rpc set_topic (Topic) returns (ReturnCode) {}
+  rpc set_topic (PubSubParam) returns (ReturnCode) {}
   // Nachrichten publizieren
-  rpc publish (Message) returns (ReturnCode) {}
+  rpc publish (PubSubParam) returns (ReturnCode) {}
 
-  // Authentifizierung
+  /* Funktionen zur Authentifizierung */
   // nonce vom Server anfragen
   rpc get_session (UserName) returns (SessionId) {}
   // Validierung der Session
   rpc validate (PubSubParam) returns (ReturnCode) {}
-  // Invalidierung
+  // Invalidieren
   rpc invalidate (SessionId) returns (ReturnCode) {}
 }
-
-
-  

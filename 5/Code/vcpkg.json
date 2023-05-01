@@ -1,0 +1,12 @@
+{
+  "name" : "code",
+  "version-string" : "1.0.0",
+  "builtin-baseline" : "cb1301e9977b5f10b49f7988f68b808f7a558970",
+  "dependencies" : [ {
+    "name" : "cryptopp",
+    "version>=" : "8.7.0#3"
+  }, {
+    "name" : "protobuf",
+    "version>=" : "3.21.12"
+  } ]
+}

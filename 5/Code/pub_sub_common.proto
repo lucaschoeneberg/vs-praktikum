@@ -36,10 +36,11 @@ message ReturnCode {
         CANNOT_UNREGISTER = 3;
         CANNOT_SET_TOPIC = 4;
         NO_HASH_FOR_SESSION = 5;
-        WRONG_HASH_FOR_SESSION = 6;
-        USER_ALREADY_LOGGED_IN = 7;
-        SESSION_INVALID = 8;
-        UNKNOWN_ERROR = 9;
+        NO_VALID_HASH = 6;
+        WRONG_HASH_FOR_SESSION = 7;
+        USER_ALREADY_LOGGED_IN = 8;
+        SESSION_INVALID = 9;
+        UNKNOWN_ERROR = 10;
         /* Hier koennen bei Bedarf weitere Return-Codes ergaenzt werden */
     }
     Values value = 1;
