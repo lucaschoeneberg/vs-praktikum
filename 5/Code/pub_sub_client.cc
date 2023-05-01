@@ -38,7 +38,7 @@ char receiverExecFile[] = RECEIVER_EXEC_FILE;
 
 void trim(std::string &s) {
     /* erstes '\n' durch '\0' ersetzen */
-    for (char & i : s) {
+    for (char &i: s) {
         if (i == '\n') {
             i = '\0';
             break;
@@ -144,12 +144,12 @@ private:
         unsigned int hash_length;
 
         const EVP_MD *md = EVP_sha256();
-        EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+        EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
 
-        EVP_DigestInit_ex(mdctx, md, nullptr);
-        EVP_DigestUpdate(mdctx, input.c_str(), input.size());
-        EVP_DigestFinal_ex(mdctx, hash, &hash_length);
-        EVP_MD_CTX_free(mdctx);
+        EVP_DigestInit_ex(mdCtx, md, nullptr);
+        EVP_DigestUpdate(mdCtx, input.c_str(), input.size());
+        EVP_DigestFinal_ex(mdCtx, hash, &hash_length);
+        EVP_MD_CTX_free(mdCtx);
 
         std::stringstream ss;
         for (unsigned int i = 0; i < hash_length; ++i) {
@@ -226,6 +226,7 @@ public:
                 // Get Session ID
                 auto *session_id = new pubsub::SessionId();
                 Status status = stub_->get_session(&session_context, user, session_id);
+                PubSubClient::sessionID = session_id->id();
                 handle_status("getSessionID()", status);
                 if (!status.ok()) {
                     continue;
@@ -286,6 +287,7 @@ public:
                 sid->set_id(sessionID);
                 request.set_allocated_sid(sid);
 
+                std::cout << "Data: " << topic + passcode << std::endl;
                 // Set hash
                 request.set_allocated_hash_string(
                         new std::string(generate_hash(sid->id(), topic + passcode, loginHash)));
@@ -412,12 +414,11 @@ public:
                 PubSubClient::handle_status("publish()", status, reply);
             }
         } while (true);
-
     }
 
 private:
     std::unique_ptr<PubSubService::Stub> stub_;
-    int sessionID;
+    int32_t sessionID;
     std::string loginHash;
 };
 

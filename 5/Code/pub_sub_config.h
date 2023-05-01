@@ -7,6 +7,6 @@
 #define PUBSUB_RECEIVER_IP "0.0.0.0"
 #define PUBSUB_RECEIVER_PORT 40041
 
-#define RECEIVER_EXEC_FILE "./pub_sub_receiver";
+#define RECEIVER_EXEC_FILE "/home/lschoene/Schreibtisch/vs-praktikum-main/5/Code/pub_sub_receiver";
 
 #define PASSCODE  "0815"

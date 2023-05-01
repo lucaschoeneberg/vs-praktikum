@@ -60,7 +60,7 @@ class PubSubServiceImpl final : public PubSubService::Service {
     std::map<std::string, std::unique_ptr<PubSubDelivService::Stub>> subscribers;
     std::map<int32_t, std::string> active_sessions;
     std::map<std::string, std::string> credentials;
-    std::string passcode = "1234";
+    std::string passcode = PASSCODE;
 
     static std::string hash(const std::string &s) {
         std::hash<std::string> hasher;
@@ -146,9 +146,11 @@ class PubSubServiceImpl final : public PubSubService::Service {
 
     Status set_topic(ServerContext *context, const PubSubParam *request,
                      ReturnCode *reply) override {
-        std::cout << "Setting topic to: " << request->opttopic().passcode() << std::endl;
+        std::cout << "Setting topic to: " << request->opttopic().topic() << std::endl;
         std::string _passcode = request->opttopic().passcode();
-        if (!check_session(request->sid().id(), &_passcode, &request->hash_string(), reply)) {
+        std::string data = request->opttopic().topic() + _passcode;
+        std::cout << "Data: " << data << std::endl;
+        if (!check_session(request->sid().id(), &data, &request->hash_string(), reply)) {
             std::cout << "Session not found" << std::endl;
             return Status::OK;
         }
@@ -294,7 +296,8 @@ private:
     static int32_t generate_session_id() {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_int_distribution<int32_t> dist(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max());
+        std::uniform_int_distribution<int32_t> dist(std::numeric_limits<int32_t>::min(),
+                                                    std::numeric_limits<int32_t>::max());
 
         int32_t session_id = dist(gen);
         return session_id;
