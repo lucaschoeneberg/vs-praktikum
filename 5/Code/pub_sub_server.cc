@@ -72,19 +72,27 @@ class PubSubServiceImpl final : public PubSubService::Service {
         s += std::to_string(adr.port());
         return s;
     }
+    static std::string stringify(const int32_t &val){
+        std::string s = std::to_string(val);
+        return s;
+    }
 
     Status subscribe(ServerContext *context, const PubSubParam *request,
                      ReturnCode *reply) override {
         std::cout << "Attempting to subscribe" << std::endl;
         std::string receiver = stringify(request->optaddress());
+        auto *hashValue = new std::string( request->optaddress().ip_address() + stringify(request->optaddress().port()));
 
+        if (!check_session(request->sid().id(), hashValue,
+                           &request->hash_string(),
+                           reply)) {
+            std::cout << "Session not found" << std::endl;
+            return Status::OK;
+        }
         if (subscribers.count(receiver)) {
             reply->set_value(pubsub::ReturnCode_Values_CLIENT_ALREADY_REGISTERED);
             std::cout << "Subscriber already registered: " << receiver << std::endl;
-        } else if (!check_session(request->sid().id(),
-                                  reinterpret_cast<std::string *>(*request->optaddress().ip_address().c_str()),
-                                  &request->hash_string(),
-                                  reply)) {
+        } else {
             auto channel = grpc::CreateChannel(receiver, grpc::InsecureChannelCredentials());
             subscribers.insert({receiver, PubSubDelivService::NewStub(channel)});
             reply->set_value(::pubsub::ReturnCode_Values::ReturnCode_Values_OK);
