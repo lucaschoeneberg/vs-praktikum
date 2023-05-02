@@ -133,6 +133,9 @@ class PubSubServiceImpl final : public PubSubService::Service {
         std::cout << "Publishing message: " << request->optmessage().message() << std::endl;
         std::cout << "Topic: " << topic << std::endl;
         std::cout << "Subscribers: " << subscribers.size() << std::endl;
+        Message message;
+        message.set_message(topic +":"+ request->optmessage().message());
+
         for (const auto &subscriber: subscribers) {
             // Nicht mehr notwendig da bereits in subscribe erstellt
             // auto channel = grpc::CreateChannel(subscriber, grpc::InsecureChannelCredentials());
@@ -142,7 +145,7 @@ class PubSubServiceImpl final : public PubSubService::Service {
             EmptyMessage response;
 
             std::cout << "Delivering message to: " << subscriber.first << std::endl;
-            Status status = subscriber.second->deliver(&client_context, request->optmessage(), &response);
+            Status status = subscriber.second->deliver(&client_context, message, &response);
             handle_status("publish", status);
         }
 
