@@ -23,6 +23,7 @@ public class ChatServerImpl extends UnicastRemoteObject implements ChatServer {
 
         clients.put(username, handle);
 
+        broadcastMessage(username, "Joined the Server");
         return new ChatProxyImpl(this, username);
     }
 
