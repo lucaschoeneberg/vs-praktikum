@@ -6,7 +6,7 @@ import java.util.Set;
 
 public class Main {
 
-    static String rmiURL = "rmi://localhost:2000/ChatServer";
+    static String rmiURL = "rmi://192.168.0.205:2000/ChatServer";
 
     public static void main(String[] args) {
         try {
