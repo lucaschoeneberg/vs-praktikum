@@ -1,10 +1,12 @@
+package rmi;
+
 import java.rmi.Naming;
 import java.util.Scanner;
 import java.util.Set;
 
 public class ChatClient {
 
-    static String rmiURL = "rmi://131.173.53.219:2000/ChatServer";
+    static String rmiURL = "rmi://131.173.53.219:2000/rmi.ChatServer";
 
     public static void main(String[] args) {
         try {
