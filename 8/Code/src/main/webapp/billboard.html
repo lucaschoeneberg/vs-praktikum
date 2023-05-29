@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Billboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <script type="text/javascript" src="billboard.js"></script>
+    <script>
+        setGetMethod(0); /* html einstellen */
+    </script>
+</head>
+<body style="font-family:arial;">
+<h1>Plakatwand</h1>
+<h3>Neues Plakat einstellen:</h3>
+<input type="text" size="100" maxlength="100" id="contents">
+<button onClick="postHttpRequest('BillBoardServer')">Post</button>
+<h3>Plakate:</h3>
+<div id="posters">
+</div>
+<br>
+<div id="timestamp" style="font-family:arial;font-size:10pt;">
+</div>
+<script type="text/javascript">
+    window.setInterval(function () {
+        getHtmlHttpRequest('BillBoardServer');
+        $('timestamp').innerHTML = new Date().toString();
+    }, 10000);
+</script>
+</body>
+</html>
