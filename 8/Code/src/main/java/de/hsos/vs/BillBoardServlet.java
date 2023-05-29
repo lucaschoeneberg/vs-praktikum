@@ -2,6 +2,8 @@ package de.hsos.vs;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.servlet.ServletException;
@@ -24,6 +26,9 @@ import jakarta.servlet.http.HttpServletResponse;
 public class BillBoardServlet extends HttpServlet {
     private final BillBoardHtmlAdapter bb = new BillBoardHtmlAdapter("BillBoardServer");
 
+
+    private final List<String> allowedIPs = Arrays.asList("192.168.1.*", "192.168.0.*", "0:0:0:0:0:0:0", "0.0.0.0", "*");
+
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
 
     /**
@@ -38,15 +43,20 @@ public class BillBoardServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String caller_ip = request.getRemoteAddr();
+
+        /* Prüfung, ob der Aufrufer die nötigen Rechte hat */
+        if (isAllowed(caller_ip)) {
+            System.out.println("BillBoardServer - GET (" + caller_ip + "): forbidden");
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         /* Ausgabe des gesamten Boards */
         System.out.println("BillBoardServer - GET (" + caller_ip + "): full output");
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        String table = bb.readEntries(caller_ip);
-        try {
+        try (PrintWriter out = response.getWriter()) {
+            String table = bb.readEntries(caller_ip);
             out.println(table);
-        } finally {
-            out.close();
         }
     }
 
@@ -62,8 +72,16 @@ public class BillBoardServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String caller_ip = request.getRemoteAddr();
-        System.out.println("BillBoardServer - POST (" + caller_ip + ")");
+        System.out.println(request);
+
+        /* Prüfung, ob der Aufrufer die nötigen Rechte hat */
+        if (isAllowed(caller_ip)) {
+            System.out.println("BillBoardServer - POST (" + caller_ip + "): forbidden");
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+        System.out.println("BillBoardServer - POST (" + caller_ip + "): " + body);
         bb.createEntry(body, caller_ip);
         response.setStatus(HttpServletResponse.SC_CREATED);
         response.getWriter().close();
@@ -81,6 +99,14 @@ public class BillBoardServlet extends HttpServlet {
     protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String caller_ip = request.getRemoteAddr();
+
+        /* Prüfung, ob der Aufrufer die nötigen Rechte hat */
+        if (isAllowed(caller_ip)) {
+            System.out.println("BillBoardServer - DELETE (" + caller_ip + "): forbidden");
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         System.out.println("BillBoardServer - DELETE (" + caller_ip + ")");
         String id = request.getPathInfo();
         if (id == null || id.equals("/")) {
@@ -104,6 +130,17 @@ public class BillBoardServlet extends HttpServlet {
     protected void doPut(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String caller_ip = request.getRemoteAddr();
+
+        System.out.println("BillBoardServer - PUT (" + caller_ip + ")");
+        System.out.println("BillBoardServer - PUT (" + request.getRemoteHost() + ")");
+
+        /* Prüfung, ob der Aufrufer die nötigen Rechte hat */
+        if (isAllowed(caller_ip)) {
+            System.out.printf("BillBoardServer - PUT (%s): forbidden%n", caller_ip);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         System.out.println("BillBoardServer - PUT (" + caller_ip + ")");
         String id = request.getPathInfo();
         if (id == null || id.equals("/")) {
@@ -125,4 +162,37 @@ public class BillBoardServlet extends HttpServlet {
     public String getServletInfo() {
         return "BillBoard Servlet";
     }// </editor-fold>
+
+    /**
+     * Liste der erlaubten IP-Adressen.
+     *
+     * @param ip
+     * @return
+     */
+    private boolean isAllowed(String ip) {
+        String[] parts = ip.split("\\."); // Teile die IP an den Punkten auf
+        String subnet = String.join(".", parts[0], parts[1], parts[2]); // Bildet das Subnet (die ersten 3 Teile der IP)
+
+        // Durchlaufe alle erlaubten IPs
+        for (String allowedIP : allowedIPs) {
+            if (allowedIP.equals("*")) {
+                // Wenn die IP ein Sternchen ist, ist alles erlaubt
+                return true;
+            }
+            if (allowedIP.contains(ip)) {
+                // Wenn die IP in der Liste enthalten ist, ist sie erlaubt
+                return true;
+            }
+            String[] allowedParts = allowedIP.split("\\.");
+            if (allowedParts.length == 4 && allowedParts[3].equals("*")) {
+                // Wenn das letzte Element ein Sternchen ist, überprüfe das Subnet
+                String allowedSubnet = String.join(".", allowedParts[0], allowedParts[1], allowedParts[2]);
+                if (subnet.equals(allowedSubnet)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
