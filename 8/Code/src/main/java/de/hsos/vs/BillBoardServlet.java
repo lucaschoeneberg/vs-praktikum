@@ -22,12 +22,12 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * @author heikerli
  */
-@WebServlet(asyncSupported = true, urlPatterns = {"/BillBoardServer"})
+@WebServlet(asyncSupported = true, urlPatterns = {"/BillBoardServer/*"})
 public class BillBoardServlet extends HttpServlet {
     private final BillBoardHtmlAdapter bb = new BillBoardHtmlAdapter("BillBoardServer");
 
 
-    private final List<String> allowedIPs = Arrays.asList("192.168.1.*", "192.168.0.*", "0:0:0:0:0:0:0", "0.0.0.0", "*");
+    private final List<String> allowedIPs = Arrays.asList("*", "192.168.1.*", "192.168.0.*", "0:0:0:0:0:0:0", "0.0.0.0", "127.0.0.1");
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
 
@@ -113,6 +113,7 @@ public class BillBoardServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        if (id.startsWith("/")) id = id.substring(1);
         bb.deleteEntry(Integer.parseInt(id));
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
         response.getWriter().close();
@@ -147,6 +148,7 @@ public class BillBoardServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        if (id.startsWith("/")) id = id.substring(1);
         String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
         bb.updateEntry(Integer.parseInt(id), body, caller_ip);
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
@@ -177,22 +179,23 @@ public class BillBoardServlet extends HttpServlet {
         for (String allowedIP : allowedIPs) {
             if (allowedIP.equals("*")) {
                 // Wenn die IP ein Sternchen ist, ist alles erlaubt
-                return true;
+                return false;
             }
-            if (allowedIP.contains(ip)) {
+            if (allowedIP.contains(ip) || allowedIP.equals(ip)) {
                 // Wenn die IP in der Liste enthalten ist, ist sie erlaubt
-                return true;
+                return false;
             }
+
+            // Wenn das letzte Element ein Sternchen ist, überprüfe das Subnet
             String[] allowedParts = allowedIP.split("\\.");
             if (allowedParts.length == 4 && allowedParts[3].equals("*")) {
-                // Wenn das letzte Element ein Sternchen ist, überprüfe das Subnet
                 String allowedSubnet = String.join(".", allowedParts[0], allowedParts[1], allowedParts[2]);
                 if (subnet.equals(allowedSubnet)) {
-                    return true;
+                    return false;
                 }
             }
         }
-        return false;
+        return true;
     }
 
 }

@@ -66,17 +66,19 @@ function getxyzHttpRequest(url) {
     xmlhttp.send(null);
 }
 
-function postHttpRequest(url, data) {
+function postHttpRequest(url) {
     const xmlhttp = getXMLHttpRequest();
     xmlhttp.open("POST", url, true);
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+    const data = $('contents').value;
     xmlhttp.send(data);
 }
 
-function putHttpRequest(url, id, data) {
+function putHttpRequest(url, id) {
     const xmlhttp = getXMLHttpRequest();
     xmlhttp.open("PUT", url + '/' + id, true);
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+    const data = $('input_field_' + id).value;
     xmlhttp.send(data);
 }
 

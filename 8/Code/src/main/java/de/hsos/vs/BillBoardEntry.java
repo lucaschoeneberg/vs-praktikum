@@ -35,9 +35,6 @@ public class BillBoardEntry {
     }
 
     public boolean belongsToCaller(String caller_ip) {
-        if (caller_ip.equals(this.owner_ip)) {
-            return true;
-        }
-        return false;
+        return caller_ip.equals(this.owner_ip);
     }
 }
