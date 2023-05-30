@@ -17,7 +17,7 @@
 </p>
 <p>Ggf. vorher Browserverlauf l&oumlschen;
 <ul>
-    <li>Chrome, Firefox, Internet Explorer: &#60;STRG&#62; &#60SHIFT&#62; &#60;ENTF&#62;</li>
+    <li>Chrome, Firefox, Internet Explorer: &#60;STRG&#62; &#60SHIFT&#62; &#60;NTF&#62;</li>
 </ul>
 </p>
 </body>

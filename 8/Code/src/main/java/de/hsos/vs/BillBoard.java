@@ -32,8 +32,7 @@ public class BillBoard {
     /* Interne Funktion: Finden eines Slots zur Substitution durch neues Plakat */
     private int pickIndex () {
         Random rand = new Random();
-        int randomNum = rand.nextInt((SIZE - 1) + 1);
-        return randomNum;
+        return rand.nextInt((SIZE - 1) + 1);
     }
     
     /* Liefert Ctxt des Servlets */

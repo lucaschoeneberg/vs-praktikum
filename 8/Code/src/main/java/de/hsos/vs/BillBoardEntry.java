@@ -1,5 +1,7 @@
 package de.hsos.vs;
 
+import jakarta.json.JsonValue;
+
 /**
  * Ein BillBoard Eintrag.
  * 
@@ -36,5 +38,9 @@ public class BillBoardEntry {
 
     public boolean belongsToCaller(String caller_ip) {
         return caller_ip.equals(this.owner_ip);
+    }
+
+    public JsonValue toJson() {
+        return JsonValue.EMPTY_JSON_OBJECT;
     }
 }

@@ -1,4 +1,4 @@
-globGetMethod = 0; /* 0: html; 1: xyz */
+globGetMethod = 1; /* 0: html; 1: xyz */
 
 function setGetMethod(val) {
     globGetMethod = val;
@@ -29,7 +29,7 @@ function getXMLHttpRequest() {
 }
 
 function getHttpRequest(url) {
-    if (globGetMethod == 0)
+    if (globGetMethod === 0)
         getHtmlHttpRequest(url);
     else
         /* xyz = JSON oder XML .... */
@@ -48,22 +48,39 @@ function getHtmlHttpRequest(url) {
         }
         $('timestamp').innerHTML = new Date().toString();
     };
+    xmlhttp.setRequestHeader("Accept", "text/html");
+    xmlhttp.setRequestHeader("Accept-Encoding", "gzip");
     xmlhttp.send(null);
 }
 
 function getxyzHttpRequest(url) {
-    const xmlhttp = getXMLHttpRequest();
+    const xmlhttp = new XMLHttpRequest();
     xmlhttp.open("GET", url, true);
     xmlhttp.onreadystatechange = function () {
         if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
-            // Die Antwort wird als JSON oder XML verarbeitet, basierend auf dem responseType
-            const response = (globGetMethod === 1) ? JSON.parse(xmlhttp.responseText) : new window.DOMParser().parseFromString(xmlhttp.responseText, "text/xml");
+            // Die Antwort wird als JSON verarbeitet
+            const response = JSON.parse(xmlhttp.responseText);
             // Das Element 'posters' wird mit der formatierten Antwort aktualisiert
-            $('posters').innerHTML = formatResponse(response);
+            document.getElementById('posters').innerHTML = formatResponse(response);
         }
-        $('timestamp').innerHTML = new Date().toString();
+        document.getElementById('timestamp').innerHTML = new Date().toString();
     };
+    xmlhttp.setRequestHeader("Accept", "application/json");
+    xmlhttp.setRequestHeader("Accept-Encoding", "gzip");
     xmlhttp.send(null);
+}
+
+function formatResponse(response) {
+    // Erstellt eine Tabelle aus dem JSON-Array
+    let html = '<table border="1" rules="none" cellspacing="4" cellpadding="5">\n';
+    for (let i = 0; i < response.entries.length; i++) {
+        html += '<tr>\n';
+        html += '<td>' + response.entries[i].id + '</td>\n';
+        html += '<td>' + response.entries[i].text + '</td>\n';
+        html += '</tr>\n';
+    }
+    html += '</table>\n';
+    return html;
 }
 
 function postHttpRequest(url) {

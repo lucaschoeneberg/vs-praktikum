@@ -4,13 +4,20 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.json.JSONObject;
 
 /**
  * Implementierung des BillBoard-Servers.
@@ -53,10 +60,20 @@ public class BillBoardServlet extends HttpServlet {
 
         /* Ausgabe des gesamten Boards */
         System.out.println("BillBoardServer - GET (" + caller_ip + "): full output");
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            String table = bb.readEntries(caller_ip);
-            out.println(table);
+        if (Objects.equals(request.getContentType(), "application/json")) {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setHeader("Content-Encoding", "gzip"); // set header for gzip
+            try (GZIPOutputStream gzip = new GZIPOutputStream(response.getOutputStream());
+                 PrintWriter out = new PrintWriter(gzip)) {
+                JSONObject json = bb.readEntriesJSON(caller_ip);
+                out.println(json);
+                response.setStatus(HttpServletResponse.SC_OK);
+            }
+        } else {
+            response.setContentType("text/html;charset=UTF-8");
+            PrintWriter out = response.getWriter();
+            out.println(bb.readEntries(caller_ip));
+            response.setStatus(HttpServletResponse.SC_OK);
         }
     }
 
@@ -80,6 +97,19 @@ public class BillBoardServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
+
+        if (request.getContentType().equals("application/json")) {
+            String body;
+            try (JsonReader jsonReader = Json.createReader(request.getReader())) {
+                JsonObject jsonObject = jsonReader.readObject();
+                body = jsonObject.toString();
+            }
+            bb.createEntry(body, caller_ip);
+            response.setStatus(HttpServletResponse.SC_CREATED);
+            response.getWriter().close();
+            return;
+        }
+
         String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
         System.out.println("BillBoardServer - POST (" + caller_ip + "): " + body);
         bb.createEntry(body, caller_ip);
@@ -149,7 +179,21 @@ public class BillBoardServlet extends HttpServlet {
             return;
         }
         if (id.startsWith("/")) id = id.substring(1);
+
+        if (request.getContentType().equals("application/json")) {
+            String body;
+            try (JsonReader jsonReader = Json.createReader(request.getReader())) {
+                JsonObject jsonObject = jsonReader.readObject();
+                body = jsonObject.toString();
+            }
+            bb.updateEntry(Integer.parseInt(id), body, caller_ip);
+            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            response.getWriter().close();
+            return;
+        }
+
         String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+        System.out.println("BillBoardServer - PUT (" + caller_ip + "): " + body);
         bb.updateEntry(Integer.parseInt(id), body, caller_ip);
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
         response.getWriter().close();
@@ -177,11 +221,8 @@ public class BillBoardServlet extends HttpServlet {
 
         // Durchlaufe alle erlaubten IPs
         for (String allowedIP : allowedIPs) {
-            if (allowedIP.equals("*")) {
+            if (allowedIP.equals("*") || allowedIP.contains(ip)) {
                 // Wenn die IP ein Sternchen ist, ist alles erlaubt
-                return false;
-            }
-            if (allowedIP.contains(ip) || allowedIP.equals(ip)) {
                 // Wenn die IP in der Liste enthalten ist, ist sie erlaubt
                 return false;
             }
