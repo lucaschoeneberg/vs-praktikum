@@ -89,6 +89,7 @@ function postHttpRequest(url) {
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
     const data = $('contents').value;
     xmlhttp.send(data);
+    getHtmlHttpRequest('BillBoardServer');
 }
 
 function putHttpRequest(url, id) {
@@ -97,10 +98,12 @@ function putHttpRequest(url, id) {
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
     const data = $('input_field_' + id).value;
     xmlhttp.send(data);
+    getHtmlHttpRequest('BillBoardServer');
 }
 
 function deleteHttpRequest(url, id) {
     const xmlhttp = getXMLHttpRequest();
     xmlhttp.open("DELETE", url + '/' + id, true);
     xmlhttp.send(null);
+    getHtmlHttpRequest('BillBoardServer');
 }
