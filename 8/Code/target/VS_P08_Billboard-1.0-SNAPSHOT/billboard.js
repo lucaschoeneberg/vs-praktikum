@@ -49,7 +49,6 @@ function getHtmlHttpRequest(url) {
         $('timestamp').innerHTML = new Date().toString();
     };
     xmlhttp.setRequestHeader("Accept", "text/html");
-    xmlhttp.setRequestHeader("Accept-Encoding", "gzip");
     xmlhttp.send(null);
 }
 
@@ -66,7 +65,6 @@ function getxyzHttpRequest(url) {
         document.getElementById('timestamp').innerHTML = new Date().toString();
     };
     xmlhttp.setRequestHeader("Accept", "application/json");
-    xmlhttp.setRequestHeader("Accept-Encoding", "gzip");
     xmlhttp.send(null);
 }
 
@@ -89,6 +87,10 @@ function postHttpRequest(url) {
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
     const data = $('contents').value;
     xmlhttp.send(data);
+    // DELAY 100 MS
+    setTimeout(function () {
+        getHtmlHttpRequest('BillBoardServer');
+    }, 100);
 }
 
 function putHttpRequest(url, id) {
@@ -97,10 +99,16 @@ function putHttpRequest(url, id) {
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
     const data = $('input_field_' + id).value;
     xmlhttp.send(data);
+    setTimeout(function () {
+        getHtmlHttpRequest('BillBoardServer');
+    }, 100);
 }
 
 function deleteHttpRequest(url, id) {
     const xmlhttp = getXMLHttpRequest();
     xmlhttp.open("DELETE", url + '/' + id, true);
     xmlhttp.send(null);
+    setTimeout(function () {
+        getHtmlHttpRequest('BillBoardServer');
+    }, 100);
 }
