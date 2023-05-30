@@ -1,6 +1,6 @@
-package com.example.webchat;
+package com.example.ab07;
 
-import com.example.webchat.rmi.*;
+import com.example.ab07.rmi.*;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;

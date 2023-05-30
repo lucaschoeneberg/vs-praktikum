@@ -5,7 +5,7 @@
          version="5.0">
     <servlet>
         <servlet-name>ChatServlet</servlet-name>
-        <servlet-class>com.example.webchat.ChatServlet</servlet-class>
+        <servlet-class>com.example.ab07.ChatServlet</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>ChatServlet</servlet-name>

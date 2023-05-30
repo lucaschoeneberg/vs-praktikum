@@ -1,4 +1,4 @@
-<%@ page import="com.example.webchat.ChatMessage" %>
+<%@ page import="com.example.ab07.ChatMessage" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Set" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>

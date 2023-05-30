@@ -1,4 +1,4 @@
-package com.example.webchat;
+package com.example.ab07;
 
 import java.io.Serializable;
 

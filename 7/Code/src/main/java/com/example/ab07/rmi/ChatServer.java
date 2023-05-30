@@ -1,6 +1,6 @@
-package com.example.webchat.rmi;
+package com.example.ab07.rmi;
 
-import com.example.webchat.ChatMessage;
+import com.example.ab07.ChatMessage;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

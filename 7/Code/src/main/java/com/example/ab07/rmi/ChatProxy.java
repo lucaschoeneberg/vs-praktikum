@@ -1,4 +1,4 @@
-package com.example.webchat.rmi;
+package com.example.ab07.rmi;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
