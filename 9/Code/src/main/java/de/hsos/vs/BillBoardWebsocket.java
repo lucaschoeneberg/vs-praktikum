@@ -1,12 +1,12 @@
 package de.hsos.vs;
 
-import javax.websocket.*;
-import javax.websocket.server.PathParam;
-import javax.websocket.server.ServerEndpoint;
+import jakarta.websocket.*;
+import jakarta.websocket.server.ServerEndpoint;
+
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.json.JSONArray;
@@ -53,35 +53,31 @@ import org.json.JSONObject;
  *         </ul>
  */
 
-@ServerEndpoint(value = "/billboard/*")
+@ServerEndpoint(value = "/billboard")
 public class BillBoardWebsocket {
     private Session session;
-    private static final Set<BillBoardWebsocket> chatEndpoints = new CopyOnWriteArraySet<>();
-    private BillBoardHtmlAdapter billBoardHtmlAdapter = new BillBoardHtmlAdapter("billboard.html");
+    private static final Set<BillBoardWebsocket> sessions = new CopyOnWriteArraySet<>();
+    private final BillBoardHtmlAdapter billBoardHtmlAdapter = new BillBoardHtmlAdapter("billboard");
+    private final ArrayList<String> stateSessionShort = new ArrayList<>();
+    private final ArrayList<String> stateSessionLong = new ArrayList<>();
+    private final ConcurrentMap<String, Long> stateSessionPendingAck = new ConcurrentHashMap<>();
 
-    // Sessions die letzte Nachricht erhalten haben
-    private ArrayList<String> stateSessionShort = new ArrayList<>();
-    // Sessions die mehr als eine nachricht nicht erhalten haben
-    private ArrayList<String> stateSessionLong = new ArrayList<>();
+    public BillBoardWebsocket() {
+        System.out.println("BillBoardWebsocket created");
+    }
 
     @OnOpen
-    public void onOpen(Session session, @PathParam("username") String username) throws IOException {
+    public void onOpen(Session session, EndpointConfig config) {
         this.session = session;
-        chatEndpoints.add(this);
+        sessions.add(this);
+        session.setMaxIdleTimeout(5 * 60 * 1000);
+
         try {
-            // JSON: {"type":"messageType","content":"messageContent","sender":"messageSender"}
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("type", "connection");
-            JSONObject content = new JSONObject();
-            content.put("session", session.getId());
-            content.put("username", username);
-            jsonObject.put("content", content);
-            jsonObject.put("sender", "server");
-            session.getBasicRemote().sendText(jsonObject.toString());
-            stateSessionShort.add(session.getId());
+            sendJsonMessage(session, "connection", new JSONObject().put("session", session.getId()));
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
+        stateSessionLong.add(session.getId());
     }
 
     @OnMessage
@@ -95,78 +91,101 @@ public class BillBoardWebsocket {
         // get Type:
         JSONObject jsonObject = new JSONObject(message);
         String type = jsonObject.getString("type");
-        JSONObject content = jsonObject.getJSONObject("content");
         String sender = jsonObject.getString("sender");
+
         if (!sender.equals("client")) {
-            // unknown sender
-            jsonObject = new JSONObject();
-            jsonObject.put("type", "error");
-            jsonObject.put("content", "Unknown sender.");
-            jsonObject.put("sender", "server");
-            session.getBasicRemote().sendText(jsonObject.toString());
+            sendJsonMessage(session, "error", "Unknown sender.");
             return;
         }
+
+        if (!jsonObject.has("content")) {
+            sendJsonMessage(session, "error", "Missing content.");
+            return;
+        }
+
+        System.out.println("Message received: " + message);
+
+        JSONObject content = jsonObject.getJSONObject("content");
+
         switch (type) {
+            case "get": {
+                System.out.println("Entry requested. Command received from session " + session.getId());
+
+                JSONArray jsonArray = getEntries();
+                if (session.isOpen())
+                    sendJsonMessage(session, "get", jsonArray);
+                break;
+            }
             case "set": {
-                // set message
+                if (!content.has("message") || content.getString("message").isEmpty()) {
+                    sendJsonMessage(session, "error", "Missing or empty message content.");
+                    return;
+                }
+                System.out.println("Entry created. Command received from session " + session.getId());
+
                 String messageContent = content.getString("message");
                 Integer messageId = billBoardHtmlAdapter.createEntry(messageContent, session.getId());
-                JSONObject setMessage = new JSONObject();
-                setMessage.put("type", "set");
-                JSONObject setContent = new JSONObject();
-                setContent.put("message", messageContent);
-                setContent.put("id", messageId);
-                setMessage.put("content", setContent);
-                setMessage.put("sender", "server");
-                sendToAllClients(setMessage);
+                sendToAllClients(new JSONObject()
+                        .put("type", "set")
+                        .put("content", new JSONObject()
+                                .put("message", messageContent)
+                                .put("id", messageId)));
                 break;
             }
             case "update": {
-                // update message
-                String id = content.getString("id");
+                if (!content.has("message") || content.getString("message").isEmpty()) {
+                    sendJsonMessage(session, "error", "Missing or empty message content.");
+                    return;
+                }
+                System.out.println("Entry " + content.getInt("id") + " updated. Command received from session " + session.getId());
+
+                Integer id = content.getInt("id");
                 String messageContent = content.getString("message");
-                billBoardHtmlAdapter.updateEntry(Integer.parseInt(id), messageContent, session.getId());
-                JSONObject updateMessage = new JSONObject();
-                updateMessage.put("type", "update");
-                JSONObject updateContent = new JSONObject();
-                updateContent.put("id", id);
-                updateContent.put("message", messageContent);
-                updateMessage.put("content", updateContent);
-                updateMessage.put("sender", "server");
-                sendToAllClients(updateMessage);
+                billBoardHtmlAdapter.updateEntry(id, messageContent, session.getId());
+                sendToAllClients(new JSONObject()
+                        .put("type", "update")
+                        .put("content", new JSONObject()
+                                .put("id", id)
+                                .put("message", messageContent)));
                 break;
             }
             case "delete": {
-                // delete message
-                String id = content.getString("id");
-                billBoardHtmlAdapter.deleteEntry(Integer.parseInt(id));
-                JSONObject deleteMessage = new JSONObject();
-                deleteMessage.put("type", "delete");
-                JSONObject deleteContent = new JSONObject();
-                deleteContent.put("id", id);
-                deleteMessage.put("content", deleteContent);
-                deleteMessage.put("sender", "server");
-                sendToAllClients(deleteMessage);
+                Integer id = content.getInt("id");
+                System.out.println("Entry " + id + " deleted. Command received from session " + session.getId());
+                billBoardHtmlAdapter.deleteEntry(id);
+                sendToAllClients(new JSONObject()
+                        .put("type", "delete")
+                        .put("content", new JSONObject()
+                                .put("id", id)));
                 break;
             }
             case "deleteAll": {
-                // delete all messages
                 billBoardHtmlAdapter.deleteAllEntries();
-                JSONObject deleteAllMessage = new JSONObject();
-                deleteAllMessage.put("type", "deleteAll");
-                JSONObject deleteAllContent = new JSONObject();
-                deleteAllMessage.put("content", deleteAllContent);
-                deleteAllMessage.put("sender", "server");
-                sendToAllClients(deleteAllMessage);
+                System.out.println("All entries deleted. Command received from session " + session.getId());
+                JSONArray jsonArray = new JSONArray();
+                for (int i = 0; i < 10; i++) {
+                    jsonArray.put(new JSONObject()
+                            .put("id", i)
+                            .put("message", ""));
+                }
+                sendToAllClients(new JSONObject()
+                        .put("type", "deleteAll")
+                        .put("content", jsonArray));
+                break;
+            }
+            case "ack": {
+                System.out.println("Ack received from session " + session.getId());
+                stateSessionPendingAck.remove(session.getId());
+                break;
+            }
+            case "ping": {
+                System.out.println("Ping received from session " + session.getId());
+                sendJsonMessage(session, "pong", "");
                 break;
             }
             default: {
                 // unknown message type
-                jsonObject = new JSONObject();
-                jsonObject.put("type", "unknown");
-                jsonObject.put("content", "Unknown message type.");
-                jsonObject.put("sender", "server");
-                session.getBasicRemote().sendText(jsonObject.toString());
+                sendJsonMessage(session, "unknown", "Unknown message type.");
                 break;
             }
         }
@@ -180,61 +199,82 @@ public class BillBoardWebsocket {
      */
     private void sendToAllClients(JSONObject jsonObject) throws IOException {
         // Send and check if client received message (if not, add to stateSessionLong)
-        for (BillBoardWebsocket endpoint : chatEndpoints) {
-            synchronized (endpoint) {
-                if (stateSessionShort.contains(endpoint.session.getId())) {
-                    try {
-                        endpoint.session.getBasicRemote().sendText(jsonObject.toString());
-                        stateSessionLong.remove(endpoint.session.getId());
-                    } catch (IOException e) {
-                        stateSessionShort.remove(endpoint.session.getId());
-                        stateSessionLong.add(endpoint.session.getId());
-                    }
-                } else {
-                    try {
-                        JSONObject jsonObject1 = new JSONObject();
-                        jsonObject1.put("type", "set");
-                        JSONArray jsonArray = new JSONArray();
-                        // get all messages and add to jsonArray Map<Integer, String>
-                        for (Map.Entry<Integer, String> entry : billBoardHtmlAdapter.readEntriesList().entrySet()) {
-                            JSONObject jsonObject2 = new JSONObject();
-                            jsonObject2.put("id", entry.getKey());
-                            jsonObject2.put("message", entry.getValue());
-                            jsonArray.put(jsonObject2);
-                        }
-                        jsonObject1.put("content", jsonArray);
-                        jsonObject1.put("sender", "server");
-                        endpoint.session.getBasicRemote().sendText(jsonObject1.toString());
-                    } catch (IOException e) {
-                        stateSessionLong.add(endpoint.session.getId());
-                    }
+        long currentTimestamp = System.currentTimeMillis();
+        for (BillBoardWebsocket endpoint : sessions) {
+            if (stateSessionShort.contains(endpoint.session.getId())) {
+                try {
+                    endpoint.session.getBasicRemote().sendText(jsonObject.toString());
+                    stateSessionLong.remove(endpoint.session.getId());
+                    stateSessionPendingAck.put(endpoint.session.getId(), currentTimestamp);
+                } catch (IOException e) {
+                    stateSessionShort.remove(endpoint.session.getId());
+                    stateSessionLong.add(endpoint.session.getId());
+                    stateSessionPendingAck.remove(endpoint.session.getId());
                 }
+            } else {
+                try {
+                    JSONArray jsonArray = getEntries();
+                    if (endpoint.session.isOpen())
+                        endpoint.session.getBasicRemote().sendText(new JSONObject().put("type", "set").put("content", jsonArray).put("sender", "server").toString());
+                } catch (IOException e) {
+                    stateSessionLong.add(endpoint.session.getId());
+                }
+            }
+        }
+        checkPendingAcks();
+    }
+
+    private void checkPendingAcks() {
+        long currentTimestamp = System.currentTimeMillis();
+        for (Map.Entry<String, Long> entry : stateSessionPendingAck.entrySet()) {
+            if (currentTimestamp - entry.getValue() > 10000) {
+                stateSessionShort.remove(entry.getKey());
+                stateSessionPendingAck.remove(entry.getKey());
+                stateSessionLong.add(entry.getKey());
             }
         }
     }
 
+
     @OnClose
     public void onClose(Session session) throws IOException {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("type", "close");
-        jsonObject.put("content", "Connection closed.");
-        jsonObject.put("sender", "server");
-        session.getBasicRemote().sendText(jsonObject.toString());
+        if (session.isOpen()) {
+            session.getBasicRemote().sendText(new JSONObject().put("type", "close").put("content", new JSONObject()).put("sender", "server").toString());
+        }
         stateSessionShort.remove(session.getId());
         stateSessionLong.remove(session.getId());
-        chatEndpoints.remove(this);
+        sessions.remove(this);
     }
 
     @OnError
     public void onError(Session session, Throwable throwable) {
         try {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("type", "error");
-            jsonObject.put("content", throwable.toString());
-            jsonObject.put("sender", "server");
             session.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private JSONArray getEntries() {
+        JSONArray jsonArray = new JSONArray();
+        // get all messages and add to jsonArray Map<Integer, String>
+        Map<String, String> ownEntry = billBoardHtmlAdapter.readEntriesMap(session.getId());
+        for (Map.Entry<Integer, String> entry : billBoardHtmlAdapter.readEntriesList().entrySet()) {
+            JSONObject jsonObject2 = new JSONObject();
+            jsonObject2.put("id", entry.getKey());
+            jsonObject2.put("message", entry.getValue());
+            if (ownEntry.containsKey(entry.getKey().toString()))
+                jsonObject2.put("sessionId", session.getId());
+            if (!Objects.equals(entry.getValue(), "<empty>"))
+                jsonArray.put(jsonObject2);
+        }
+        return jsonArray;
+    }
+
+    private void sendJsonMessage(Session session, String type, Object content) throws IOException {
+        JSONObject jsonObject = new JSONObject().put("type", type).put("content", content).put("sender", "server");
+        if (session.isOpen()) {
+            session.getBasicRemote().sendText(jsonObject.toString());
         }
     }
 }

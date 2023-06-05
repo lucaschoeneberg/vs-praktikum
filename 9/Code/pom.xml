@@ -4,11 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.hsos</groupId>
-    <artifactId>VS_P08_Billboard</artifactId>
+    <artifactId>BillboardWebsocket</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>BillboardWebsocket</name>
     <packaging>war</packaging>
-
-    <name>VS_P08_Billboard</name>
 
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -47,8 +46,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.1</version>
                 <configuration>
-                    <source>9</source>
-                    <target>9</target>
+                    <source>11</source>
+                    <target>11</target>
                     <compilerArguments>
                         <endorseddirs>${endorsed.dir}</endorseddirs>
                     </compilerArguments>

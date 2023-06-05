@@ -1,9 +1,6 @@
 package de.hsos.vs;
 
-import jakarta.json.JsonObject;
 import org.json.JSONObject;
-
-import java.util.Map;
 
 /**
  * Interface eines Billboard Adapters.

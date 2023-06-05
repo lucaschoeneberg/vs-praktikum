@@ -4,7 +4,7 @@
     <title>Billboard</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width">
-    <script type="text/javascript" src="billboard.js"></script>
+    <script type="text/javascript" src="billboardws.js"></script>
     <script>
         setGetMethod(0); /* html einstellen */
     </script>
@@ -13,9 +13,22 @@
 <h1>Plakatwand</h1>
 <h3>Neues Plakat einstellen:</h3>
 <input type="text" size="100" maxlength="100" id="contents">
-<button onClick="postHttpRequest('BillBoardServer')">Post</button>
+<button onClick="setWebSocket('BillBoardServer')">Post</button>
 <h3>Plakate:</h3>
 <div id="posters">
+    <table border="1" rules="none" cellspacing="4" cellpadding="5" id="posterTable">
+        <tr><td id="entry0-id">0</td><td><label for="input_field_0"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_0" value="" disabled></td><td><button id="entry0-put" onClick="putWebSocket('BillBoardServer', 0)" disabled>Update</button></td><td><button id="entry0-delete" onClick="deleteWebSocket('BillBoardServer', 0)" disabled>Delete</button></td></tr>
+        <tr><td id="entry1-id">1</td><td><label for="input_field_1"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_1" value="" disabled></td><td><button id="entry1-put" onClick="putWebSocket('BillBoardServer', 1)" disabled>Update</button></td><td><button id="entry1-delete" onClick="deleteWebSocket('BillBoardServer', 1)" disabled>Delete</button></td></tr>
+        <tr><td id="entry2-id">2</td><td><label for="input_field_2"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_2" value="" disabled></td><td><button id="entry2-put" onClick="putWebSocket('BillBoardServer', 2)" disabled>Update</button></td><td><button id="entry2-delete" onClick="deleteWebSocket('BillBoardServer', 2)" disabled>Delete</button></td></tr>
+        <tr><td id="entry3-id">3</td><td><label for="input_field_3"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_3" value="" disabled></td><td><button id="entry3-put" onClick="putWebSocket('BillBoardServer', 3)" disabled>Update</button></td><td><button id="entry3-delete" onClick="deleteWebSocket('BillBoardServer', 3)" disabled>Delete</button></td></tr>
+        <tr><td id="entry4-id">4</td><td><label for="input_field_4"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_4" value="" disabled></td><td><button id="entry4-put" onClick="putWebSocket('BillBoardServer', 4)" disabled>Update</button></td><td><button id="entry4-delete" onClick="deleteWebSocket('BillBoardServer', 4)" disabled>Delete</button></td></tr>
+        <tr><td id="entry5-id">5</td><td><label for="input_field_5"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_5" value="" disabled></td><td><button id="entry5-put" onClick="putWebSocket('BillBoardServer', 5)" disabled>Update</button></td><td><button id="entry5-delete" onClick="deleteWebSocket('BillBoardServer', 5)" disabled>Delete</button></td></tr>
+        <tr><td id="entry6-id">6</td><td><label for="input_field_6"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_6" value="" disabled></td><td><button id="entry6-put" onClick="putWebSocket('BillBoardServer', 6)" disabled>Update</button></td><td><button id="entry6-delete" onClick="deleteWebSocket('BillBoardServer', 6)" disabled>Delete</button></td></tr>
+        <tr><td id="entry7-id">7</td><td><label for="input_field_7"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_7" value="" disabled></td><td><button id="entry7-put" onClick="putWebSocket('BillBoardServer', 7)" disabled>Update</button></td><td><button id="entry7-delete" onClick="deleteWebSocket('BillBoardServer', 7)" disabled>Delete</button></td></tr>
+        <tr><td id="entry8-id">8</td><td><label for="input_field_8"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_8" value="" disabled></td><td><button id="entry8-put" onClick="putWebSocket('BillBoardServer', 8)" disabled>Update</button></td><td><button id="entry8-delete" onClick="deleteWebSocket('BillBoardServer', 8)" disabled>Delete</button></td></tr>
+        <tr><td id="entry9-id">9</td><td><label for="input_field_9"></label><input type="text" size="100" minlength="100" maxlength="100" id="input_field_9" value="" disabled></td><td><button id="entry9-put" onClick="putWebSocket('BillBoardServer', 9)" disabled>Update</button></td><td><button id="entry9-delete" onClick="deleteWebSocket('BillBoardServer', 9)" disabled>Delete</button></td></tr>
+    </table>
+</div>
 </div>
 <br>
 <div id="timestamp" style="font-family:arial;font-size:10pt;">

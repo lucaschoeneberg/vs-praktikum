@@ -80,6 +80,7 @@ public class BillBoardHtmlAdapter extends BillBoard implements BillBoardAdapterI
             JSONObject entry = new JSONObject();
             entry.put("id", e.id);
             entry.put("text", e.text);
+            entry.put("ip", e.owner_ip);
             jsonArray.put(entry);
         }
         JSONObject result = new JSONObject();
@@ -110,4 +111,5 @@ public class BillBoardHtmlAdapter extends BillBoard implements BillBoardAdapterI
         }
         return result;
     }
+
 }

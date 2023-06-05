@@ -13,7 +13,7 @@ function getXMLHttpRequest() {
     if (window.XMLHttpRequest) {
         return new XMLHttpRequest();
     }
-    if (window.ActveObject) { // Internet Explorer
+    if (window.ActiveXObject) { // Internet Explorer
         try { // for IE new
             return new ActiveXObject("Msxml2.XMLHTTP");
         } catch (e) {  // for IE old
@@ -37,7 +37,7 @@ function getHttpRequest(url) {
 }
 
 function getHtmlHttpRequest(url) {
-    var xmlhttp = getXMLHttpRequest();
+    const xmlhttp = getXMLHttpRequest();
     xmlhttp.open("GET", url, true);
     xmlhttp.onreadystatechange = function () {
         if (xmlhttp.readyState !== 4) {
@@ -87,7 +87,6 @@ function postHttpRequest(url) {
     xmlhttp.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
     const data = $('contents').value;
     xmlhttp.send(data);
-    // DELAY 100 MS
     setTimeout(function () {
         getHtmlHttpRequest('BillBoardServer');
     }, 100);
