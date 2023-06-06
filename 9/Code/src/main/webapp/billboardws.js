@@ -21,6 +21,18 @@ function startWebSocket() {
                 ws.send(pingData);
             }
         }, 30000);  // 30000 milliseconds = 30 seconds
+
+        // Senden einer Anfrage nach allen Nachrichten
+        const data = JSON.stringify({
+            type: 'get',
+            content: {},
+            sender: 'client'
+        });
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(data);
+        } else {
+            console.log("WebSocket not open");
+        }
     };
 
 
@@ -63,7 +75,7 @@ function startWebSocket() {
                     console.log("Invalid 'delete' message received: missing required fields.");
                     return;
                 }
-                formatResponse(msg.content);
+                formatResponse(msg.content, "delete");
                 break;
             case "deleteAll":
                 formatResponse(msg.content);
@@ -158,7 +170,7 @@ function deleteWebSocket(url, id) {
     }
 }
 
-function formatResponse(response) {
+function formatResponse(response, type ="set") {
     for (let i = 0; i < response.length; i++) {
         const disabled = !(session === response[i].sessionId);
         const input = $('input_field_' + response[i].id);
@@ -172,15 +184,4 @@ function formatResponse(response) {
 // Starten Sie den WebSocket, wenn das Dokument geladen wird
 window.onload = function () {
     startWebSocket();
-    // Senden einer Anfrage nach allen Nachrichten
-    const data = JSON.stringify({
-        type: 'get',
-        content: {},
-        sender: 'client'
-    });
-    if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-    } else {
-        console.log("WebSocket not open");
-    }
 };

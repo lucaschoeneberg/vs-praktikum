@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -55,22 +54,17 @@ import org.json.JSONObject;
 
 @ServerEndpoint(value = "/billboard")
 public class BillBoardWebsocket {
-    private Session session;
-    private static final Set<BillBoardWebsocket> sessions = new CopyOnWriteArraySet<>();
-    private final BillBoardHtmlAdapter billBoardHtmlAdapter = new BillBoardHtmlAdapter("billboard");
-    private final ArrayList<String> stateSessionShort = new ArrayList<>();
-    private final ArrayList<String> stateSessionLong = new ArrayList<>();
-    private final ConcurrentMap<String, Long> stateSessionPendingAck = new ConcurrentHashMap<>();
+    private static ArrayList<Session> sessions = new ArrayList<>();
+    private static BillBoardHtmlAdapter billBoardHtmlAdapter = new BillBoardHtmlAdapter("BillBoardServer");
+    private static ArrayList<String> stateSessionShort = new ArrayList<>();
+    private static ArrayList<String> stateSessionLong = new ArrayList<>();
+    private static ConcurrentMap<String, Long> stateSessionPendingAck = new ConcurrentHashMap<>();
 
-    public BillBoardWebsocket() {
-        System.out.println("BillBoardWebsocket created");
-    }
 
     @OnOpen
     public void onOpen(Session session, EndpointConfig config) {
-        this.session = session;
-        sessions.add(this);
-        session.setMaxIdleTimeout(5 * 60 * 1000);
+        sessions.add(session);
+        session.setMaxIdleTimeout(5 * 60 * 1000); // 5 minutes
 
         try {
             sendJsonMessage(session, "connection", new JSONObject().put("session", session.getId()));
@@ -125,6 +119,7 @@ public class BillBoardWebsocket {
 
                 String messageContent = content.getString("message");
                 Integer messageId = billBoardHtmlAdapter.createEntry(messageContent, session.getId());
+
                 sendToAllClients(new JSONObject()
                         .put("type", "set")
                         .put("content", new JSONObject()
@@ -200,24 +195,24 @@ public class BillBoardWebsocket {
     private void sendToAllClients(JSONObject jsonObject) throws IOException {
         // Send and check if client received message (if not, add to stateSessionLong)
         long currentTimestamp = System.currentTimeMillis();
-        for (BillBoardWebsocket endpoint : sessions) {
-            if (stateSessionShort.contains(endpoint.session.getId())) {
+        for (Session endpoint : sessions) {
+            if (stateSessionShort.contains(endpoint.getId())) {
                 try {
-                    endpoint.session.getBasicRemote().sendText(jsonObject.toString());
-                    stateSessionLong.remove(endpoint.session.getId());
-                    stateSessionPendingAck.put(endpoint.session.getId(), currentTimestamp);
+                    endpoint.getBasicRemote().sendText(jsonObject.toString());
+                    stateSessionLong.remove(endpoint.getId());
+                    stateSessionPendingAck.put(endpoint.getId(), currentTimestamp);
                 } catch (IOException e) {
-                    stateSessionShort.remove(endpoint.session.getId());
-                    stateSessionLong.add(endpoint.session.getId());
-                    stateSessionPendingAck.remove(endpoint.session.getId());
+                    stateSessionShort.remove(endpoint.getId());
+                    stateSessionLong.add(endpoint.getId());
+                    stateSessionPendingAck.remove(endpoint.getId());
                 }
             } else {
                 try {
                     JSONArray jsonArray = getEntries();
-                    if (endpoint.session.isOpen())
-                        endpoint.session.getBasicRemote().sendText(new JSONObject().put("type", "set").put("content", jsonArray).put("sender", "server").toString());
+                    if (endpoint.isOpen())
+                        endpoint.getBasicRemote().sendText(new JSONObject().put("type", "set").put("content", jsonArray).put("sender", "server").toString());
                 } catch (IOException e) {
-                    stateSessionLong.add(endpoint.session.getId());
+                    stateSessionLong.add(endpoint.getId());
                 }
             }
         }
@@ -258,14 +253,9 @@ public class BillBoardWebsocket {
     private JSONArray getEntries() {
         JSONArray jsonArray = new JSONArray();
         // get all messages and add to jsonArray Map<Integer, String>
-        Map<String, String> ownEntry = billBoardHtmlAdapter.readEntriesMap(session.getId());
-        for (Map.Entry<Integer, String> entry : billBoardHtmlAdapter.readEntriesList().entrySet()) {
-            JSONObject jsonObject2 = new JSONObject();
-            jsonObject2.put("id", entry.getKey());
-            jsonObject2.put("message", entry.getValue());
-            if (ownEntry.containsKey(entry.getKey().toString()))
-                jsonObject2.put("sessionId", session.getId());
-            if (!Objects.equals(entry.getValue(), "<empty>"))
+        for (Map.Entry<Integer, JSONObject> entry : billBoardHtmlAdapter.readEntriesListJson().entrySet()) {
+            JSONObject jsonObject2 = entry.getValue();
+            if (!Objects.equals(entry.getValue().getString("message"), "<empty>"))
                 jsonArray.put(jsonObject2);
         }
         return jsonArray;

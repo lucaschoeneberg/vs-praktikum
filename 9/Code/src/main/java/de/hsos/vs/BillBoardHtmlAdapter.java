@@ -112,4 +112,16 @@ public class BillBoardHtmlAdapter extends BillBoard implements BillBoardAdapterI
         return result;
     }
 
+    public Map<Integer, JSONObject> readEntriesListJson() {
+        Map<Integer, JSONObject> result = new HashMap<>();
+        for (BillBoardEntry e : billboard) {
+            JSONObject entry = new JSONObject();
+            entry.put("id", e.id);
+            entry.put("message", e.text);
+            entry.put("sessionId", e.owner_ip);
+            result.put(e.id, entry);
+        }
+        return result;
+    }
+
 }
