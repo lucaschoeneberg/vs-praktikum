@@ -65,13 +65,13 @@ public class BillBoardWebsocket {
     public void onOpen(Session session, EndpointConfig config) {
         sessions.add(session);
         session.setMaxIdleTimeout(5 * 60 * 1000); // 5 minutes
+        stateSessionShort.add(session.getId());
 
         try {
             sendJsonMessage(session, "connection", new JSONObject().put("session", session.getId()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        stateSessionLong.add(session.getId());
     }
 
     @OnMessage
@@ -124,7 +124,9 @@ public class BillBoardWebsocket {
                         .put("type", "set")
                         .put("content", new JSONObject()
                                 .put("message", messageContent)
-                                .put("id", messageId)));
+                                .put("id", messageId)
+                                .put("sessionId", session.getId()))
+                        .put("sender", "server"));
                 break;
             }
             case "update": {
@@ -141,7 +143,9 @@ public class BillBoardWebsocket {
                         .put("type", "update")
                         .put("content", new JSONObject()
                                 .put("id", id)
-                                .put("message", messageContent)));
+                                .put("message", messageContent)
+                                .put("sessionId", session.getId()))
+                        .put("sender", "server"));
                 break;
             }
             case "delete": {
@@ -151,21 +155,18 @@ public class BillBoardWebsocket {
                 sendToAllClients(new JSONObject()
                         .put("type", "delete")
                         .put("content", new JSONObject()
-                                .put("id", id)));
+                                .put("id", id))
+                        .put("sender", "server"));
                 break;
             }
             case "deleteAll": {
                 billBoardHtmlAdapter.deleteAllEntries();
                 System.out.println("All entries deleted. Command received from session " + session.getId());
-                JSONArray jsonArray = new JSONArray();
-                for (int i = 0; i < 10; i++) {
-                    jsonArray.put(new JSONObject()
-                            .put("id", i)
-                            .put("message", ""));
-                }
+
                 sendToAllClients(new JSONObject()
                         .put("type", "deleteAll")
-                        .put("content", jsonArray));
+                        .put("content", "")
+                        .put("sender", "server"));
                 break;
             }
             case "ack": {
@@ -196,7 +197,15 @@ public class BillBoardWebsocket {
         // Send and check if client received message (if not, add to stateSessionLong)
         long currentTimestamp = System.currentTimeMillis();
         for (Session endpoint : sessions) {
-            if (stateSessionShort.contains(endpoint.getId())) {
+            if (stateSessionLong.contains(endpoint.getId())) {
+                try {
+                    JSONArray jsonArray = getEntries();
+                    if (endpoint.isOpen())
+                        endpoint.getBasicRemote().sendText(new JSONObject().put("type", "set").put("content", jsonArray).put("sender", "server").toString());
+                } catch (IOException e) {
+                    stateSessionLong.add(endpoint.getId());
+                }
+            } else {
                 try {
                     endpoint.getBasicRemote().sendText(jsonObject.toString());
                     stateSessionLong.remove(endpoint.getId());
@@ -206,14 +215,6 @@ public class BillBoardWebsocket {
                     stateSessionLong.add(endpoint.getId());
                     stateSessionPendingAck.remove(endpoint.getId());
                 }
-            } else {
-                try {
-                    JSONArray jsonArray = getEntries();
-                    if (endpoint.isOpen())
-                        endpoint.getBasicRemote().sendText(new JSONObject().put("type", "set").put("content", jsonArray).put("sender", "server").toString());
-                } catch (IOException e) {
-                    stateSessionLong.add(endpoint.getId());
-                }
             }
         }
         checkPendingAcks();
@@ -221,12 +222,19 @@ public class BillBoardWebsocket {
 
     private void checkPendingAcks() {
         long currentTimestamp = System.currentTimeMillis();
+        List<String> sessionsToRemove = new ArrayList<>();
+
         for (Map.Entry<String, Long> entry : stateSessionPendingAck.entrySet()) {
             if (currentTimestamp - entry.getValue() > 10000) {
-                stateSessionShort.remove(entry.getKey());
-                stateSessionPendingAck.remove(entry.getKey());
-                stateSessionLong.add(entry.getKey());
+                String sessionId = entry.getKey();
+                sessionsToRemove.add(sessionId);
+                stateSessionLong.add(sessionId);
             }
+        }
+
+        for (String sessionId : sessionsToRemove) {
+            stateSessionShort.remove(sessionId);
+            stateSessionPendingAck.remove(sessionId);
         }
     }
 
@@ -254,9 +262,7 @@ public class BillBoardWebsocket {
         JSONArray jsonArray = new JSONArray();
         // get all messages and add to jsonArray Map<Integer, String>
         for (Map.Entry<Integer, JSONObject> entry : billBoardHtmlAdapter.readEntriesListJson().entrySet()) {
-            JSONObject jsonObject2 = entry.getValue();
-            if (!Objects.equals(entry.getValue().getString("message"), "<empty>"))
-                jsonArray.put(jsonObject2);
+            jsonArray.put(entry.getValue());
         }
         return jsonArray;
     }

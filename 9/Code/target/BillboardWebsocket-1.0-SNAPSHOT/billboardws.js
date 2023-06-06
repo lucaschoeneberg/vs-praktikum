@@ -49,7 +49,9 @@ function startWebSocket() {
         switch (msg.type) {
             case "set":
                 console.log(msg.content);
-                if (!msg.content[0].hasOwnProperty("id") || !msg.content[0].hasOwnProperty("message")) {
+                if (msg.content.hasOwnProperty("id") || msg.content.hasOwnProperty("message")) {
+                    formatResponse([msg.content]);
+                } else if (!msg.content[0].hasOwnProperty("id") || !msg.content[0].hasOwnProperty("message")) {
                     console.log("Invalid 'set' message received: missing required fields.");
                     return;
                 }
@@ -68,17 +70,27 @@ function startWebSocket() {
                     console.log("Invalid 'update' message received: missing required fields.");
                     return;
                 }
-                formatResponse(msg.content);
+                formatResponse([msg.content]);
                 break;
             case "delete":
                 if (!msg.content.hasOwnProperty("id")) {
                     console.log("Invalid 'delete' message received: missing required fields.");
                     return;
                 }
-                formatResponse(msg.content, "delete");
+                const input = $('input_field_' + msg.content.id);
+                input.value = "";
+                input.disabled = true;
+                $('entry' + msg.content.id + '-put').disabled = true;
+                $('entry' + msg.content.id + '-delete').disabled = true;
                 break;
             case "deleteAll":
-                formatResponse(msg.content);
+                for (let i = 0; i < 10; i++) {
+                    const input = $('input_field_' + i);
+                    input.value = "";
+                    input.disabled = true;
+                    $('entry' + i + '-put').disabled = true;
+                    $('entry' + i + '-delete').disabled = true;
+                }
                 break;
             case "connection":
                 if (!msg.content.hasOwnProperty("session")) {
@@ -170,12 +182,17 @@ function deleteWebSocket(url, id) {
     }
 }
 
-function formatResponse(response, type ="set") {
+function formatResponse(response) {
     for (let i = 0; i < response.length; i++) {
         const disabled = !(session === response[i].sessionId);
         const input = $('input_field_' + response[i].id);
-        input.value = response[i].message;
-        input.disabled = disabled;
+        if (response[i].message === "<empty>") {
+            input.value = "";
+            input.disabled = true;
+        } else {
+            input.value = response[i].message;
+            input.disabled = disabled;
+        }
         $('entry' + response[i].id + '-put').disabled = disabled;
         $('entry' + response[i].id + '-delete').disabled = disabled;
     }
