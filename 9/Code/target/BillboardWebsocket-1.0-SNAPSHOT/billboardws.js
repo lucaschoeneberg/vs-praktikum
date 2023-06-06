@@ -35,13 +35,20 @@ function startWebSocket() {
 
         // Verarbeiten der verschiedenen Nachrichtentypen
         switch (msg.type) {
-            case "set" || "get":
+            case "set":
                 console.log(msg.content);
                 if (!msg.content[0].hasOwnProperty("id") || !msg.content[0].hasOwnProperty("message")) {
                     console.log("Invalid 'set' message received: missing required fields.");
                     return;
                 }
 
+                formatResponse(msg.content);
+                break;
+            case "get":
+                if (!msg.content[0].hasOwnProperty("id") || !msg.content[0].hasOwnProperty("message")) {
+                    console.log("Invalid 'get' message received: missing required fields.");
+                    return;
+                }
                 formatResponse(msg.content);
                 break;
             case "update":

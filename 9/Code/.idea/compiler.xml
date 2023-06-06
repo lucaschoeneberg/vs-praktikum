@@ -9,14 +9,10 @@
         <module name="BillboardWebsocket" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="VS_P08_Billboard" target="11" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="BillboardWebsocket" options="-endorseddirs &quot;$PROJECT_DIR$/target/endorsed&quot;" />
-      <module name="VS_P08_Billboard" options="-endorseddirs &quot;$PROJECT_DIR$/target/endorsed&quot;" />
     </option>
   </component>
 </project>
